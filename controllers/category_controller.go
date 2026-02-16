@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/yanaatere/expense_tracking/internal/db"
 	"github.com/yanaatere/expense_tracking/models"
 )
 
@@ -14,7 +14,7 @@ type CategoryController struct {
 	model *models.CategoryModel
 }
 
-func NewCategoryController(db *sql.DB) *CategoryController {
+func NewCategoryController(db db.DBTX) *CategoryController {
 	return &CategoryController{
 		model: models.NewCategoryModel(db),
 	}
@@ -34,7 +34,7 @@ func (c *CategoryController) RegisterRoutes(router *mux.Router) {
 }
 
 func (c *CategoryController) GetCategories(w http.ResponseWriter, r *http.Request) {
-	categories, err := c.model.GetAll()
+	categories, err := c.model.GetAll(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -52,12 +52,12 @@ func (c *CategoryController) GetCategory(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	category, err := c.model.Get(id)
+	category, err := c.model.Get(r.Context(), int32(id))
 	if err != nil {
-		if err == sql.ErrNoRows {
-			http.Error(w, "Category not found", http.StatusNotFound)
-			return
-		}
+		// if err == sql.ErrNoRows {
+		// 	http.Error(w, "Category not found", http.StatusNotFound)
+		// 	return
+		// }
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -73,7 +73,7 @@ func (c *CategoryController) CreateCategory(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	category, err := c.model.Create(req.Name, req.Description)
+	category, err := c.model.Create(r.Context(), req.Name, req.Description)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -98,12 +98,12 @@ func (c *CategoryController) UpdateCategory(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	category, err := c.model.Update(id, req.Name, req.Description)
+	category, err := c.model.Update(r.Context(), int32(id), req.Name, req.Description)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			http.Error(w, "Category not found", http.StatusNotFound)
-			return
-		}
+		// if err == sql.ErrNoRows {
+		// 	http.Error(w, "Category not found", http.StatusNotFound)
+		// 	return
+		// }
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -120,12 +120,12 @@ func (c *CategoryController) DeleteCategory(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err = c.model.Delete(id)
+	err = c.model.Delete(r.Context(), int32(id))
 	if err != nil {
-		if err == sql.ErrNoRows {
-			http.Error(w, "Category not found", http.StatusNotFound)
-			return
-		}
+		// if err == sql.ErrNoRows {
+		// 	http.Error(w, "Category not found", http.StatusNotFound)
+		// 	return
+		// }
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

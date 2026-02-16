@@ -1,37 +1,38 @@
 package config
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"os"
 
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Config struct {
-	DB *sql.DB
+	DB *pgxpool.Pool
 }
 
 func LoadConfig() (*Config, error) {
 	// Database configuration
-dbHost := getEnv("DB_HOST", "localhost")
-dbPort := getEnv("DB_PORT", "5432")
-dbUser := getEnv("DB_USER", "postgres")
-dbPassword := getEnv("DB_PASSWORD", "postgres")
-dbName := getEnv("DB_NAME", "expense_tracking")
+	dbHost := getEnv("DB_HOST", "db.btcqmtnjujfkasfkffwo.supabase.co")
+	dbPort := getEnv("DB_PORT", "5432")
+	dbUser := getEnv("DB_USER", "postgres")
+	dbPassword := getEnv("DB_PASSWORD", "natQkCKzJQnIcStx")
+	dbName := getEnv("DB_NAME", "postgres")
 
 	// Database connection string
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+	// Supabase requires SSL mode
+	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require",
 		dbHost, dbPort, dbUser, dbPassword, dbName)
 
 	// Open database connection
-	db, err := sql.Open("postgres", psqlInfo)
+	db, err := pgxpool.New(context.Background(), psqlInfo)
 	if err != nil {
 		return nil, err
 	}
 
 	// Test the connection
-	err = db.Ping()
+	err = db.Ping(context.Background())
 	if err != nil {
 		return nil, err
 	}

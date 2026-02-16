@@ -1,18 +1,18 @@
 package controllers
 
 import (
-	"database/sql"
 	"github.com/gorilla/mux"
 	"github.com/yanaatere/expense_tracking/handlers"
+	"github.com/yanaatere/expense_tracking/internal/db"
 )
 
 type UserController struct {
 	handler *handlers.UserHandler
 }
 
-func NewUserController(db *sql.DB) *UserController {
+func NewUserController(d db.DBTX) *UserController {
 	return &UserController{
-		handler: handlers.NewUserHandler(db),
+		handler: handlers.NewUserHandler(d),
 	}
 }
 

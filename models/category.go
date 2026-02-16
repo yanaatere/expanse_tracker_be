@@ -1,94 +1,63 @@
 package models
 
 import (
-	"database/sql"
-	"time"
+	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/yanaatere/expense_tracking/internal/db"
 )
 
-type Category struct {
-	ID          int       `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-}
+type Category = db.Category
 
 type CategoryModel struct {
-	db *sql.DB
+	q *db.Queries
 }
 
-func NewCategoryModel(db *sql.DB) *CategoryModel {
-	return &CategoryModel{db: db}
+func NewCategoryModel(d db.DBTX) *CategoryModel {
+	return &CategoryModel{q: db.New(d)}
 }
 
-func (m *CategoryModel) GetAll() ([]Category, error) {
-	rows, err := m.db.Query("SELECT id, name, description, created_at, updated_at FROM categories")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var categories []Category
-	for rows.Next() {
-		var c Category
-		err := rows.Scan(&c.ID, &c.Name, &c.Description, &c.CreatedAt, &c.UpdatedAt)
-		if err != nil {
-			return nil, err
-		}
-		categories = append(categories, c)
-	}
-	return categories, nil
+func (m *CategoryModel) GetAll(ctx context.Context) ([]Category, error) {
+	return m.q.ListCategories(ctx)
 }
 
-func (m *CategoryModel) Get(id int) (*Category, error) {
-	var c Category
-	err := m.db.QueryRow("SELECT id, name, description, created_at, updated_at FROM categories WHERE id = ?", id).
-		Scan(&c.ID, &c.Name, &c.Description, &c.CreatedAt, &c.UpdatedAt)
+func (m *CategoryModel) Get(ctx context.Context, id int32) (*Category, error) {
+	c, err := m.q.GetCategory(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	return &c, nil
 }
 
-func (m *CategoryModel) Create(name, description string) (*Category, error) {
-	now := time.Now()
-	result, err := m.db.Exec("INSERT INTO categories (name, description, created_at, updated_at) VALUES (?, ?, ?, ?)",
-		name, description, now, now)
+func (m *CategoryModel) Create(ctx context.Context, name, description string) (*Category, error) {
+	c, err := m.q.CreateCategory(ctx, db.CreateCategoryParams{
+		Name: name,
+		Description: pgtype.Text{
+			String: description,
+			Valid:  true,
+		},
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
-
-	return &Category{
-		ID:          int(id),
-		Name:        name,
-		Description: description,
-		CreatedAt:   now,
-		UpdatedAt:   now,
-	}, nil
+	return &c, nil
 }
 
-func (m *CategoryModel) Update(id int, name, description string) (*Category, error) {
-	now := time.Now()
-	_, err := m.db.Exec("UPDATE categories SET name = ?, description = ?, updated_at = ? WHERE id = ?",
-		name, description, now, id)
+func (m *CategoryModel) Update(ctx context.Context, id int32, name, description string) (*Category, error) {
+	c, err := m.q.UpdateCategory(ctx, db.UpdateCategoryParams{
+		ID:   id,
+		Name: name,
+		Description: pgtype.Text{
+			String: description,
+			Valid:  true,
+		},
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	return &Category{
-		ID:          id,
-		Name:        name,
-		Description: description,
-		UpdatedAt:   now,
-	}, nil
+	return &c, nil
 }
 
-func (m *CategoryModel) Delete(id int) error {
-	_, err := m.db.Exec("DELETE FROM categories WHERE id = ?", id)
-	return err
+func (m *CategoryModel) Delete(ctx context.Context, id int32) error {
+	return m.q.DeleteCategory(ctx, id)
 }
