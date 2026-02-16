@@ -7,7 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/yanaatere/expense_tracking/config"
-	"github.com/yanaatere/expense_tracking/handlers"
+	"github.com/yanaatere/expense_tracking/controllers"
 )
 
 func main() {
@@ -20,35 +20,15 @@ func main() {
 	// Initialize router
 	r := mux.NewRouter()
 
-	// Initialize handlers
-	userHandler := handlers.NewUserHandler(cfg.DB)
-	categoryHandler := handlers.NewCategoryHandler(cfg.DB)
-	transactionHandler := handlers.NewTransactionHandler(cfg.DB)
+	// Initialize controllers
+	userController := controllers.NewUserController(cfg.DB)
+	categoryController := controllers.NewCategoryController(cfg.DB)
+	transactionController := controllers.NewTransactionController(cfg.DB)
 
-	// Routes
-	// Users
-	r.HandleFunc("/api/users", userHandler.GetUsers).Methods("GET")
-	r.HandleFunc("/api/users", userHandler.CreateUser).Methods("POST")
-	r.HandleFunc("/api/users/{id}", userHandler.GetUser).Methods("GET")
-	r.HandleFunc("/api/users/{id}", userHandler.UpdateUser).Methods("PUT")
-	r.HandleFunc("/api/users/{id}", userHandler.DeleteUser).Methods("DELETE")
-
-	// Categories
-	r.HandleFunc("/api/categories", categoryHandler.GetCategories).Methods("GET")
-	r.HandleFunc("/api/categories", categoryHandler.CreateCategory).Methods("POST")
-	r.HandleFunc("/api/categories/{id}", categoryHandler.GetCategory).Methods("GET")
-	r.HandleFunc("/api/categories/{id}", categoryHandler.UpdateCategory).Methods("PUT")
-	r.HandleFunc("/api/categories/{id}", categoryHandler.DeleteCategory).Methods("DELETE")
-
-	// Transactions
-	r.HandleFunc("/api/transactions", transactionHandler.GetTransactions).Methods("GET")
-	r.HandleFunc("/api/transactions", transactionHandler.CreateTransaction).Methods("POST")
-	r.HandleFunc("/api/transactions/{id}", transactionHandler.GetTransaction).Methods("GET")
-	r.HandleFunc("/api/transactions/{id}", transactionHandler.UpdateTransaction).Methods("PUT")
-	r.HandleFunc("/api/transactions/{id}", transactionHandler.DeleteTransaction).Methods("DELETE")
-
-	// Dashboard Stats
-	r.HandleFunc("/api/dashboard/stats", transactionHandler.GetDashboardStats).Methods("GET")
+	// Register routes
+	userController.RegisterRoutes(r)
+	categoryController.RegisterRoutes(r)
+	transactionController.RegisterRoutes(r)
 
 	// Start server
 	port := os.Getenv("PORT")
