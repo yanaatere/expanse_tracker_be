@@ -1,37 +1,26 @@
-version: '3.8'
 services:
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: expense-tracker-app
     ports:
       - "8080:8080"
-    depends_on:
-      - db
+    env_file:
+      - .env
     environment:
-      - DB_HOST=db
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_NAME=expense_tracking
-      - DB_PORT=5432
-    volumes:
-      - .:/app
+      - PORT=8080
     networks:
       - expense-network
-
-  db:
-    image: postgres:latest
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=expense_tracking
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - expense-network
-
-volumes:
-  postgres_data:
+    restart: unless-stopped
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 networks:
   expense-network:

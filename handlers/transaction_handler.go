@@ -8,7 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/yanaatere/expense_tracking/internal/db"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yanaatere/expense_tracking/models"
 )
 
@@ -16,9 +16,9 @@ type TransactionHandler struct {
 	model *models.TransactionModel
 }
 
-func NewTransactionHandler(db db.DBTX) *TransactionHandler {
+func NewTransactionHandler(pool *pgxpool.Pool) *TransactionHandler {
 	return &TransactionHandler{
-		model: models.NewTransactionModel(db),
+		model: models.NewTransactionModel(pool),
 	}
 }
 

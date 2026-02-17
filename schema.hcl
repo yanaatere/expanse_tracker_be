@@ -120,3 +120,41 @@ table "transactions" {
     expr = "type IN ('income', 'expense')"
   }
 }
+
+table "balances" {
+  schema = public
+  column "id" {
+    null = false
+    type = serial
+  }
+  column "user_id" {
+    null = false
+    type = integer
+  }
+  column "total_balance" {
+    null = false
+    type = numeric(12, 2)
+    default = 0
+  }
+  column "created_at" {
+    null = true
+    type = timestamp
+    default = sql("CURRENT_TIMESTAMP")
+  }
+  column "updated_at" {
+    null = false
+    type = timestamp
+    default = sql("CURRENT_TIMESTAMP")
+  }
+  primary_key {
+    columns = [column.id]
+  }
+  unique "balances_user_id_key" {
+    columns = [column.user_id]
+  }
+  foreign_key "balances_user_id_fkey" {
+    columns = [column.user_id]
+    ref_columns = [table.users.column.id]
+    on_delete = CASCADE
+  }
+}

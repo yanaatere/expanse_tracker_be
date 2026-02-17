@@ -24,11 +24,13 @@ func main() {
 	userController := controllers.NewUserController(cfg.DB)
 	categoryController := controllers.NewCategoryController(cfg.DB)
 	transactionController := controllers.NewTransactionController(cfg.DB)
+	balanceController := controllers.NewBalanceController(cfg.DB)
 
 	// Register routes
 	userController.RegisterRoutes(r)
 	categoryController.RegisterRoutes(r)
 	transactionController.RegisterRoutes(r)
+	balanceController.RegisterRoutes(r)
 
 	// Start server
 	port := os.Getenv("PORT")

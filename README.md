@@ -2,42 +2,77 @@
 
 A RESTful API service built in Go for tracking personal expenses and managing financial categories. This application helps users monitor and organize their spending by providing endpoints to manage expense records and categories.
 
-## Features
+## Docker Setup
 
-- Category Management
-  - Create, read, update, and delete expense categories
-  - Categorize expenses for better organization
-  - Track category-specific spending
+### Building the Docker Image
 
-- RESTful API Endpoints
-  - Categories API
-    - GET /api/categories - List all categories
-    - GET /api/categories/{id} - Get category details
-    - POST /api/categories - Create new category
-    - PUT /api/categories/{id} - Update category
-    - DELETE /api/categories/{id} - Delete category
-
-## Technology Stack
-
-- Go (Golang)
-- PostgreSQL Database
-- Gorilla Mux Router
-- RESTful API Architecture
-
-## Project Structure
-
+```bash
+docker build -t expense-tracker .
 ```
-expense_tracking/
-├── controllers/
-│   └── category_controller.go
-├── models/
-│   └── category.go
-├── migrations/
-│   └── 002_create_categories_table.sql
-└── main.go
+
+### Running with Docker Compose
+
+```bash
+# Build and start the container
+docker-compose up --build
+
+# Run in background
+docker-compose up -d --build
+
+# View logs
+docker-compose logs -f app
+
+# Stop containers
+docker-compose down
 ```
+
+### Environment Variables
+
+The application supports the following environment variables:
+
+- `DB_HOST` - Database host (default: localhost)
+- `DB_USER` - Database user (default: postgres)
+- `DB_PASSWORD` - Database password 
+- `DB_NAME` - Database name (default: postgres)
+- `DB_PORT` - Database port (default: 5432)
+- `PORT` - API server port (default: 8080)
+
+You can override these by creating a `.env` file in the project root or passing them via docker-compose environment variables.
 
 ## Getting Started
+
+### Prerequisites
+- Git
+- Docker and Docker Desktop (recommended)
+- OR: Go 1.21+, PostgreSQL 15+
+
+### Running with Docker (Recommended)
+
+1. Clone the repository
+```bash
+git clone https://github.com/yanaatere/expense_tracking.git
+cd expense_tracking
+```
+
+2. Set up environment variables (optional)
+```bash
+cat > .env << EOF
+DB_HOST=db.btcqmtnjujfkasfkffwo.supabase.co
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_NAME=postgres
+DB_PORT=5432
+EOF
+```
+
+3. Build and run with Docker
+```bash
+docker-compose up --build
+```
+
+The API will be available at `http://localhost:8080`
+
+### Running Locally
 
 1. Clone the repository
 ```bash
@@ -46,54 +81,22 @@ git clone https://github.com/yanaatere/expense_tracking.git
 
 2. Set up the database
 - Install PostgreSQL
-- Create a new database
 - Run the migration scripts in the migrations folder
+```bash
+go run cmd/migrate/main.go
+```
 
-3. Run the application
+3. Install dependencies
+```bash
+go mod download
+```
+
+4. Run the application
 ```bash
 go run main.go
 ```
 
-## API Documentation
-
-### Categories
-
-#### List Categories
-```
-GET /api/categories
-```
-
-#### Get Category
-```
-GET /api/categories/{id}
-```
-
-#### Create Category
-```
-POST /api/categories
-Content-Type: application/json
-
-{
-    "name": "string",
-    "description": "string"
-}
-```
-
-#### Update Category
-```
-PUT /api/categories/{id}
-Content-Type: application/json
-
-{
-    "name": "string",
-    "description": "string"
-}
-```
-
-#### Delete Category
-```
-DELETE /api/categories/{id}
-```
+The API will be available at `http://localhost:8080`
 
 ## Contributing
 

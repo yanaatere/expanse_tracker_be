@@ -2,31 +2,57 @@ package models
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yanaatere/expense_tracking/internal/db"
 )
 
 type Transaction = db.Transaction
 
 type TransactionModel struct {
-	q *db.Queries
+	q            *db.Queries
+	pool         *pgxpool.Pool
+	balanceModel *BalanceModel
 }
 
-func NewTransactionModel(d db.DBTX) *TransactionModel {
-	return &TransactionModel{q: db.New(d)}
+func NewTransactionModel(pool *pgxpool.Pool) *TransactionModel {
+	return &TransactionModel{
+		q:            db.New(pool),
+		pool:         pool,
+		balanceModel: NewBalanceModel(pool),
+	}
+}
+
+// balanceDelta calculates how much to adjust the balance.
+// Income adds to balance (+amount), expense subtracts from balance (-amount).
+func balanceDelta(tType string, amount float64) float64 {
+	if tType == "income" {
+		return amount
+	}
+	return -amount
 }
 
 func (m *TransactionModel) Create(ctx context.Context, userID int32, tType string, amount float64, description string, categoryID *int32, date pgtype.Date) (*Transaction, error) {
+	// Start a DB transaction for atomicity
+	tx, err := m.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := m.q.WithTx(tx)
+
 	catID := pgtype.Int4{Valid: false}
 	if categoryID != nil {
 		catID = pgtype.Int4{Int32: *categoryID, Valid: true}
 	}
 
 	amountNumeric := pgtype.Numeric{}
-	amountNumeric.Scan(amount) // Basic conversion, assuming float64 fits
+	amountNumeric.Scan(amount)
 
-	t, err := m.q.CreateTransaction(ctx, db.CreateTransactionParams{
+	t, err := qtx.CreateTransaction(ctx, db.CreateTransactionParams{
 		UserID:          userID,
 		Type:            tType,
 		Amount:          amountNumeric,
@@ -35,8 +61,19 @@ func (m *TransactionModel) Create(ctx context.Context, userID int32, tType strin
 		TransactionDate: date,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create transaction: %w", err)
 	}
+
+	// Adjust balance in the same DB transaction
+	delta := balanceDelta(tType, amount)
+	if err := m.balanceModel.AdjustBalanceWithTx(ctx, tx, userID, delta); err != nil {
+		return nil, fmt.Errorf("failed to adjust balance: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit: %w", err)
+	}
+
 	return &t, nil
 }
 
@@ -56,6 +93,29 @@ func (m *TransactionModel) Get(ctx context.Context, id int32, userID int32) (*db
 }
 
 func (m *TransactionModel) Update(ctx context.Context, id int32, userID int32, tType string, amount float64, description string, categoryID *int32, date pgtype.Date) (*Transaction, error) {
+	// Start a DB transaction for atomicity
+	tx, err := m.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := m.q.WithTx(tx)
+
+	// First, get the old transaction to reverse its effect on balance
+	oldTx, err := qtx.GetTransaction(ctx, db.GetTransactionParams{
+		ID:     id,
+		UserID: userID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get existing transaction: %w", err)
+	}
+
+	// Calculate the old amount as float64
+	oldAmountVal, _ := oldTx.Amount.Float64Value()
+	oldAmount := oldAmountVal.Float64
+	oldDelta := balanceDelta(oldTx.Type, oldAmount)
+
 	catID := pgtype.Int4{Valid: false}
 	if categoryID != nil {
 		catID = pgtype.Int4{Int32: *categoryID, Valid: true}
@@ -64,7 +124,7 @@ func (m *TransactionModel) Update(ctx context.Context, id int32, userID int32, t
 	amountNumeric := pgtype.Numeric{}
 	amountNumeric.Scan(amount)
 
-	t, err := m.q.UpdateTransaction(ctx, db.UpdateTransactionParams{
+	t, err := qtx.UpdateTransaction(ctx, db.UpdateTransactionParams{
 		ID:              id,
 		UserID:          userID,
 		Type:            tType,
@@ -74,19 +134,67 @@ func (m *TransactionModel) Update(ctx context.Context, id int32, userID int32, t
 		TransactionDate: date,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to update transaction: %w", err)
 	}
+
+	// Adjust balance: reverse old effect, apply new effect
+	newDelta := balanceDelta(tType, amount)
+	netDelta := newDelta - oldDelta
+	if err := m.balanceModel.AdjustBalanceWithTx(ctx, tx, userID, netDelta); err != nil {
+		return nil, fmt.Errorf("failed to adjust balance: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit: %w", err)
+	}
+
 	return &t, nil
 }
 
 func (m *TransactionModel) Delete(ctx context.Context, id int32, userID int32) error {
-	return m.q.DeleteTransaction(ctx, db.DeleteTransactionParams{
+	// Start a DB transaction for atomicity
+	tx, err := m.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := m.q.WithTx(tx)
+
+	// First, get the transaction to know how to reverse its balance effect
+	oldTx, err := qtx.GetTransaction(ctx, db.GetTransactionParams{
 		ID:     id,
 		UserID: userID,
 	})
+	if err != nil {
+		return fmt.Errorf("transaction not found: %w", err)
+	}
+
+	// Delete the transaction
+	err = qtx.DeleteTransaction(ctx, db.DeleteTransactionParams{
+		ID:     id,
+		UserID: userID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete transaction: %w", err)
+	}
+
+	// Reverse the balance effect
+	oldAmountVal, _ := oldTx.Amount.Float64Value()
+	oldAmount := oldAmountVal.Float64
+	reverseDelta := -balanceDelta(oldTx.Type, oldAmount)
+	if err := m.balanceModel.AdjustBalanceWithTx(ctx, tx, userID, reverseDelta); err != nil {
+		return fmt.Errorf("failed to adjust balance: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit: %w", err)
+	}
+
+	return nil
 }
 
-// Stats result
+// Stats result - kept for backward compatibility with dashboard
 type DashboardStats struct {
 	TotalIncome  float64 `json:"total_income"`
 	TotalExpense float64 `json:"total_expense"`
@@ -94,18 +202,31 @@ type DashboardStats struct {
 }
 
 func (m *TransactionModel) GetDashboardStats(ctx context.Context, userID int32) (*DashboardStats, error) {
+	// Get income/expense from transactions
 	res, err := m.q.GetDashboardStats(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert numeric to float64
 	income, _ := res.TotalIncome.Float64Value()
 	expense, _ := res.TotalExpense.Float64Value()
+
+	// Get balance from balances table
+	bal, err := m.q.GetBalance(ctx, userID)
+	if err != nil {
+		// If no balance row, compute it
+		return &DashboardStats{
+			TotalIncome:  income.Float64,
+			TotalExpense: expense.Float64,
+			TotalBalance: income.Float64 - expense.Float64,
+		}, nil
+	}
+
+	balance, _ := bal.TotalBalance.Float64Value()
 
 	return &DashboardStats{
 		TotalIncome:  income.Float64,
 		TotalExpense: expense.Float64,
-		TotalBalance: income.Float64 - expense.Float64,
+		TotalBalance: balance.Float64,
 	}, nil
 }

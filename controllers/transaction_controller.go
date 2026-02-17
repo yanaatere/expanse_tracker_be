@@ -2,17 +2,17 @@ package controllers
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yanaatere/expense_tracking/handlers"
-	"github.com/yanaatere/expense_tracking/internal/db"
 )
 
 type TransactionController struct {
 	handler *handlers.TransactionHandler
 }
 
-func NewTransactionController(db db.DBTX) *TransactionController {
+func NewTransactionController(pool *pgxpool.Pool) *TransactionController {
 	return &TransactionController{
-		handler: handlers.NewTransactionHandler(db),
+		handler: handlers.NewTransactionHandler(pool),
 	}
 }
 
