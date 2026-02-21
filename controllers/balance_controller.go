@@ -1,8 +1,11 @@
 package controllers
 
 import (
+	"net/http"
+
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/yanaatere/expense_tracking/auth"
 	"github.com/yanaatere/expense_tracking/handlers"
 )
 
@@ -17,9 +20,10 @@ func NewBalanceController(pool *pgxpool.Pool) *BalanceController {
 }
 
 func (c *BalanceController) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/api/balance", c.handler.GetBalance).Methods("GET")
-	router.HandleFunc("/api/balance/monthly", c.handler.GetMonthlyBalance).Methods("GET")
-	router.HandleFunc("/api/balance/range", c.handler.GetBalanceByDateRange).Methods("GET")
-	router.HandleFunc("/api/balance/category", c.handler.GetBalanceByCategory).Methods("GET")
-	router.HandleFunc("/api/balance/recalculate", c.handler.RecalculateBalance).Methods("POST")
+	// All balance routes are protected - require JWT authentication
+	router.Handle("/api/balance", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetBalance))).Methods("GET")
+	router.Handle("/api/balance/monthly", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetMonthlyBalance))).Methods("GET")
+	router.Handle("/api/balance/range", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetBalanceByDateRange))).Methods("GET")
+	router.Handle("/api/balance/category", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetBalanceByCategory))).Methods("GET")
+	router.Handle("/api/balance/recalculate", auth.JWTMiddleware(http.HandlerFunc(c.handler.RecalculateBalance))).Methods("POST")
 }

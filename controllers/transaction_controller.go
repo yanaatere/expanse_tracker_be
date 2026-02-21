@@ -1,8 +1,11 @@
 package controllers
 
 import (
+	"net/http"
+
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/yanaatere/expense_tracking/auth"
 	"github.com/yanaatere/expense_tracking/handlers"
 )
 
@@ -17,12 +20,13 @@ func NewTransactionController(pool *pgxpool.Pool) *TransactionController {
 }
 
 func (c *TransactionController) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/api/transactions", c.handler.GetTransactions).Methods("GET")
-	router.HandleFunc("/api/transactions", c.handler.CreateTransaction).Methods("POST")
-	router.HandleFunc("/api/transactions/{id:[0-9]+}", c.handler.GetTransaction).Methods("GET")
-	router.HandleFunc("/api/transactions/{id:[0-9]+}", c.handler.UpdateTransaction).Methods("PUT")
-	router.HandleFunc("/api/transactions/{id:[0-9]+}", c.handler.DeleteTransaction).Methods("DELETE")
+	// All transaction routes are protected - require JWT authentication
+	router.Handle("/api/transactions", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetTransactions))).Methods("GET")
+	router.Handle("/api/transactions", auth.JWTMiddleware(http.HandlerFunc(c.handler.CreateTransaction))).Methods("POST")
+	router.Handle("/api/transactions/{id:[0-9]+}", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetTransaction))).Methods("GET")
+	router.Handle("/api/transactions/{id:[0-9]+}", auth.JWTMiddleware(http.HandlerFunc(c.handler.UpdateTransaction))).Methods("PUT")
+	router.Handle("/api/transactions/{id:[0-9]+}", auth.JWTMiddleware(http.HandlerFunc(c.handler.DeleteTransaction))).Methods("DELETE")
 
-	// Dashboard Stats
-	router.HandleFunc("/api/dashboard/stats", c.handler.GetDashboardStats).Methods("GET")
+	// Dashboard Stats - also protected
+	router.Handle("/api/dashboard/stats", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetDashboardStats))).Methods("GET")
 }

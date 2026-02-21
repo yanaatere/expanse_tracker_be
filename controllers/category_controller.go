@@ -1,7 +1,10 @@
 package controllers
 
 import (
+	"net/http"
+
 	"github.com/gorilla/mux"
+	"github.com/yanaatere/expense_tracking/auth"
 	"github.com/yanaatere/expense_tracking/handlers"
 	"github.com/yanaatere/expense_tracking/internal/db"
 )
@@ -17,9 +20,10 @@ func NewCategoryController(db db.DBTX) *CategoryController {
 }
 
 func (c *CategoryController) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/api/categories", c.handler.GetCategories).Methods("GET")
-	router.HandleFunc("/api/categories/{id:[0-9]+}", c.handler.GetCategory).Methods("GET")
-	router.HandleFunc("/api/categories", c.handler.CreateCategory).Methods("POST")
-	router.HandleFunc("/api/categories/{id:[0-9]+}", c.handler.UpdateCategory).Methods("PUT")
-	router.HandleFunc("/api/categories/{id:[0-9]+}", c.handler.DeleteCategory).Methods("DELETE")
+	// All category routes are protected - require JWT authentication
+	router.Handle("/api/categories", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetCategories))).Methods("GET")
+	router.Handle("/api/categories/{id:[0-9]+}", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetCategory))).Methods("GET")
+	router.Handle("/api/categories", auth.JWTMiddleware(http.HandlerFunc(c.handler.CreateCategory))).Methods("POST")
+	router.Handle("/api/categories/{id:[0-9]+}", auth.JWTMiddleware(http.HandlerFunc(c.handler.UpdateCategory))).Methods("PUT")
+	router.Handle("/api/categories/{id:[0-9]+}", auth.JWTMiddleware(http.HandlerFunc(c.handler.DeleteCategory))).Methods("DELETE")
 }

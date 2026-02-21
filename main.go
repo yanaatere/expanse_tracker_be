@@ -8,6 +8,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/yanaatere/expense_tracking/config"
 	"github.com/yanaatere/expense_tracking/controllers"
+	"github.com/yanaatere/expense_tracking/logger"
+	"github.com/yanaatere/expense_tracking/middleware"
 )
 
 func main() {
@@ -32,14 +34,24 @@ func main() {
 	transactionController.RegisterRoutes(r)
 	balanceController.RegisterRoutes(r)
 
+	// Apply middleware to all routes (order matters: logging -> CORS)
+	// Logging middleware must be first to capture all requests
+	handler := middleware.LoggingMiddleware(r)
+	handler = middleware.CORSMiddleware(handler)
+
 	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("Server starting on port %s", port)
-	if err := http.ListenAndServe(":"+port, r); err != nil {
-		log.Fatal(err)
+	logger.Infof("======================== Server Starting ========================")
+	logger.Infof("Server starting on port %s", port)
+	logger.Infof("Environment: %s", os.Getenv("ENVIRONMENT"))
+	logger.Infof("Database: %s", os.Getenv("DB_NAME"))
+	logger.Infof("===========================================================")
+
+	if err := http.ListenAndServe(":"+port, handler); err != nil {
+		logger.Fatalf("Server error: %v", err)
 	}
 }

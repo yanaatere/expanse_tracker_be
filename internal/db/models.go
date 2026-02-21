@@ -37,9 +37,12 @@ type Transaction struct {
 }
 
 type User struct {
-	ID        int32            `json:"id"`
-	Username  string           `json:"username"`
-	Email     string           `json:"email"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+	ID                   int32            `json:"id"`
+	Username             string           `json:"username"`
+	Email                string           `json:"email"`
+	Password             string           `json:"password"`
+	PasswordResetToken   pgtype.Text      `json:"password_reset_token"`
+	PasswordResetExpires pgtype.Timestamp `json:"password_reset_expires"`
+	CreatedAt            pgtype.Timestamp `json:"created_at"`
+	UpdatedAt            pgtype.Timestamp `json:"updated_at"`
 }
