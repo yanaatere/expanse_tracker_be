@@ -13,13 +13,17 @@ import (
 )
 
 type TransactionHandler struct {
-	model *models.TransactionModel
+	model TransactionModelInterface
 }
 
 func NewTransactionHandler(pool *pgxpool.Pool) *TransactionHandler {
 	return &TransactionHandler{
 		model: models.NewTransactionModel(pool),
 	}
+}
+
+func NewTransactionHandlerWithModel(model TransactionModelInterface) *TransactionHandler {
+	return &TransactionHandler{model: model}
 }
 
 type TransactionInput struct {

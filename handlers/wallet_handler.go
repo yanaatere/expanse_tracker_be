@@ -11,11 +11,15 @@ import (
 )
 
 type WalletHandler struct {
-	model *models.WalletModel
+	model WalletModelInterface
 }
 
 func NewWalletHandler(pool *pgxpool.Pool) *WalletHandler {
 	return &WalletHandler{model: models.NewWalletModel(pool)}
+}
+
+func NewWalletHandlerWithModel(model WalletModelInterface) *WalletHandler {
+	return &WalletHandler{model: model}
 }
 
 type WalletInput struct {

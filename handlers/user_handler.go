@@ -11,13 +11,17 @@ import (
 )
 
 type UserHandler struct {
-	model *models.UserModel
+	model UserModelInterface
 }
 
 func NewUserHandler(db db.DBTX) *UserHandler {
 	return &UserHandler{
 		model: models.NewUserModel(db),
 	}
+}
+
+func NewUserHandlerWithModel(model UserModelInterface) *UserHandler {
+	return &UserHandler{model: model}
 }
 
 type UserInput struct {

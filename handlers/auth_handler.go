@@ -11,13 +11,17 @@ import (
 )
 
 type AuthHandler struct {
-	userModel *models.UserModel
+	userModel UserModelInterface
 }
 
 func NewAuthHandler(database db.DBTX) *AuthHandler {
 	return &AuthHandler{
 		userModel: models.NewUserModel(database),
 	}
+}
+
+func NewAuthHandlerWithModel(model UserModelInterface) *AuthHandler {
+	return &AuthHandler{userModel: model}
 }
 
 type RegisterRequest struct {

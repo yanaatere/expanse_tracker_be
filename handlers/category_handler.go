@@ -11,13 +11,17 @@ import (
 )
 
 type CategoryHandler struct {
-	model *models.CategoryModel
+	model CategoryModelInterface
 }
 
 func NewCategoryHandler(db db.DBTX) *CategoryHandler {
 	return &CategoryHandler{
 		model: models.NewCategoryModel(db),
 	}
+}
+
+func NewCategoryHandlerWithModel(model CategoryModelInterface) *CategoryHandler {
+	return &CategoryHandler{model: model}
 }
 
 type CategoryInput struct {

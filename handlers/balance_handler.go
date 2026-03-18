@@ -12,13 +12,17 @@ import (
 )
 
 type BalanceHandler struct {
-	model *models.BalanceModel
+	model BalanceModelInterface
 }
 
 func NewBalanceHandler(pool *pgxpool.Pool) *BalanceHandler {
 	return &BalanceHandler{
 		model: models.NewBalanceModel(pool),
 	}
+}
+
+func NewBalanceHandlerWithModel(model BalanceModelInterface) *BalanceHandler {
+	return &BalanceHandler{model: model}
 }
 
 // GetBalance returns the overall balance (total income, total expense, total balance) for a user.
