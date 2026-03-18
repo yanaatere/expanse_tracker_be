@@ -23,12 +23,15 @@ func NewTransactionHandler(pool *pgxpool.Pool) *TransactionHandler {
 }
 
 type TransactionInput struct {
-	UserID      int     `json:"user_id"`
-	Type        string  `json:"type"`
-	Amount      float64 `json:"amount"`
-	Description string  `json:"description"`
-	CategoryID  *int    `json:"category_id"`
-	Date        string  `json:"date"` // Expects "2006-01-02"
+	UserID          int     `json:"user_id"`
+	Type            string  `json:"type"`
+	Amount          float64 `json:"amount"`
+	Description     string  `json:"description"`
+	CategoryID      *int    `json:"category_id"`
+	SubCategoryID   *int    `json:"sub_category_id"`
+	WalletID        *int    `json:"wallet_id"`
+	Date            string  `json:"date"` // Expects "2006-01-02"
+	ReceiptImageUrl string  `json:"receipt_image_url"`
 }
 
 func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
@@ -69,13 +72,23 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		id := int32(*input.CategoryID)
 		catID = &id
 	}
+	var subCatID *int32
+	if input.SubCategoryID != nil {
+		id := int32(*input.SubCategoryID)
+		subCatID = &id
+	}
+	var walletID *int32
+	if input.WalletID != nil {
+		id := int32(*input.WalletID)
+		walletID = &id
+	}
 
 	pgDate := pgtype.Date{
 		Time:  date,
 		Valid: true,
 	}
 
-	transaction, err := h.model.Create(r.Context(), int32(input.UserID), input.Type, input.Amount, input.Description, catID, pgDate)
+	transaction, err := h.model.Create(r.Context(), int32(input.UserID), input.Type, input.Amount, input.Description, catID, subCatID, walletID, pgDate, input.ReceiptImageUrl)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -176,8 +189,18 @@ func (h *TransactionHandler) UpdateTransaction(w http.ResponseWriter, r *http.Re
 
 	var catID *int32
 	if input.CategoryID != nil {
-		id := int32(*input.CategoryID)
-		catID = &id
+		cid := int32(*input.CategoryID)
+		catID = &cid
+	}
+	var subCatID *int32
+	if input.SubCategoryID != nil {
+		sid := int32(*input.SubCategoryID)
+		subCatID = &sid
+	}
+	var walletID *int32
+	if input.WalletID != nil {
+		wid := int32(*input.WalletID)
+		walletID = &wid
 	}
 
 	pgDate := pgtype.Date{
@@ -185,7 +208,7 @@ func (h *TransactionHandler) UpdateTransaction(w http.ResponseWriter, r *http.Re
 		Valid: true,
 	}
 
-	transaction, err := h.model.Update(r.Context(), int32(id), int32(input.UserID), input.Type, input.Amount, input.Description, catID, pgDate)
+	transaction, err := h.model.Update(r.Context(), int32(id), int32(input.UserID), input.Type, input.Amount, input.Description, catID, subCatID, walletID, pgDate)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

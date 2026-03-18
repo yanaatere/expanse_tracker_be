@@ -1,33 +1,48 @@
 -- name: CreateTransaction :one
-INSERT INTO transactions (user_id, type, amount, description, category_id, transaction_date)
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, user_id, type, amount, description, category_id, transaction_date, created_at, updated_at;
+INSERT INTO transactions (user_id, type, amount, description, category_id, sub_category_id, wallet_id, transaction_date, receipt_image_url)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING id, user_id, type, amount, description, category_id, sub_category_id, wallet_id, receipt_image_url, transaction_date, created_at, updated_at;
 
 -- name: GetTransaction :one
-SELECT t.id, t.user_id, t.type, t.amount, t.description, t.category_id, c.name as category_name, t.transaction_date, t.created_at, t.updated_at
+SELECT t.id, t.user_id, t.type, t.amount, t.description,
+       t.category_id, c.name as category_name,
+       t.sub_category_id, sc.name as sub_category_name,
+       t.wallet_id, w.name as wallet_name,
+       t.receipt_image_url,
+       t.transaction_date, t.created_at, t.updated_at
 FROM transactions t
 LEFT JOIN categories c ON t.category_id = c.id
+LEFT JOIN categories sc ON t.sub_category_id = sc.id
+LEFT JOIN wallets w ON t.wallet_id = w.id
 WHERE t.id = $1 AND t.user_id = $2 LIMIT 1;
 
 -- name: ListTransactions :many
-SELECT t.id, t.user_id, t.type, t.amount, t.description, t.category_id, c.name as category_name, t.transaction_date, t.created_at, t.updated_at
+SELECT t.id, t.user_id, t.type, t.amount, t.description,
+       t.category_id, c.name as category_name,
+       t.sub_category_id, sc.name as sub_category_name,
+       t.wallet_id, w.name as wallet_name,
+       t.receipt_image_url,
+       t.transaction_date, t.created_at, t.updated_at
 FROM transactions t
 LEFT JOIN categories c ON t.category_id = c.id
+LEFT JOIN categories sc ON t.sub_category_id = sc.id
+LEFT JOIN wallets w ON t.wallet_id = w.id
 WHERE t.user_id = $1
 ORDER BY t.transaction_date DESC, t.created_at DESC;
 
 -- name: UpdateTransaction :one
 UPDATE transactions
-SET type = $3, amount = $4, description = $5, category_id = $6, transaction_date = $7, updated_at = CURRENT_TIMESTAMP
+SET type = $3, amount = $4, description = $5, category_id = $6, sub_category_id = $7,
+    wallet_id = $8, transaction_date = $9, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND user_id = $2
-RETURNING id, user_id, type, amount, description, category_id, transaction_date, created_at, updated_at;
+RETURNING id, user_id, type, amount, description, category_id, sub_category_id, wallet_id, receipt_image_url, transaction_date, created_at, updated_at;
 
 -- name: DeleteTransaction :exec
 DELETE FROM transactions
 WHERE id = $1 AND user_id = $2;
 
 -- name: GetDashboardStats :one
-SELECT 
+SELECT
     COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0)::numeric AS total_income,
     COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0)::numeric AS total_expense
 FROM transactions

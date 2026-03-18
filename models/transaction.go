@@ -34,7 +34,7 @@ func balanceDelta(tType string, amount float64) float64 {
 	return -amount
 }
 
-func (m *TransactionModel) Create(ctx context.Context, userID int32, tType string, amount float64, description string, categoryID *int32, date pgtype.Date) (*Transaction, error) {
+func (m *TransactionModel) Create(ctx context.Context, userID int32, tType string, amount float64, description string, categoryID *int32, subCategoryID *int32, walletID *int32, date pgtype.Date, receiptImageUrl string) (*Transaction, error) {
 	// Start a DB transaction for atomicity
 	tx, err := m.pool.Begin(ctx)
 	if err != nil {
@@ -48,9 +48,22 @@ func (m *TransactionModel) Create(ctx context.Context, userID int32, tType strin
 	if categoryID != nil {
 		catID = pgtype.Int4{Int32: *categoryID, Valid: true}
 	}
+	subCatID := pgtype.Int4{Valid: false}
+	if subCategoryID != nil {
+		subCatID = pgtype.Int4{Int32: *subCategoryID, Valid: true}
+	}
+	wID := pgtype.Int4{Valid: false}
+	if walletID != nil {
+		wID = pgtype.Int4{Int32: *walletID, Valid: true}
+	}
 
 	amountNumeric := pgtype.Numeric{}
 	amountNumeric.Scan(amount)
+
+	imgUrl := pgtype.Text{Valid: false}
+	if receiptImageUrl != "" {
+		imgUrl = pgtype.Text{String: receiptImageUrl, Valid: true}
+	}
 
 	t, err := qtx.CreateTransaction(ctx, db.CreateTransactionParams{
 		UserID:          userID,
@@ -58,7 +71,10 @@ func (m *TransactionModel) Create(ctx context.Context, userID int32, tType strin
 		Amount:          amountNumeric,
 		Description:     pgtype.Text{String: description, Valid: true},
 		CategoryID:      catID,
+		SubCategoryID:   subCatID,
+		WalletID:        wID,
 		TransactionDate: date,
+		ReceiptImageUrl: imgUrl,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create transaction: %w", err)
@@ -92,7 +108,7 @@ func (m *TransactionModel) Get(ctx context.Context, id int32, userID int32) (*db
 	return &t, nil
 }
 
-func (m *TransactionModel) Update(ctx context.Context, id int32, userID int32, tType string, amount float64, description string, categoryID *int32, date pgtype.Date) (*Transaction, error) {
+func (m *TransactionModel) Update(ctx context.Context, id int32, userID int32, tType string, amount float64, description string, categoryID *int32, subCategoryID *int32, walletID *int32, date pgtype.Date) (*Transaction, error) {
 	// Start a DB transaction for atomicity
 	tx, err := m.pool.Begin(ctx)
 	if err != nil {
@@ -120,6 +136,14 @@ func (m *TransactionModel) Update(ctx context.Context, id int32, userID int32, t
 	if categoryID != nil {
 		catID = pgtype.Int4{Int32: *categoryID, Valid: true}
 	}
+	subCatID := pgtype.Int4{Valid: false}
+	if subCategoryID != nil {
+		subCatID = pgtype.Int4{Int32: *subCategoryID, Valid: true}
+	}
+	wID := pgtype.Int4{Valid: false}
+	if walletID != nil {
+		wID = pgtype.Int4{Int32: *walletID, Valid: true}
+	}
 
 	amountNumeric := pgtype.Numeric{}
 	amountNumeric.Scan(amount)
@@ -131,6 +155,8 @@ func (m *TransactionModel) Update(ctx context.Context, id int32, userID int32, t
 		Amount:          amountNumeric,
 		Description:     pgtype.Text{String: description, Valid: true},
 		CategoryID:      catID,
+		SubCategoryID:   subCatID,
+		WalletID:        wID,
 		TransactionDate: date,
 	})
 	if err != nil {

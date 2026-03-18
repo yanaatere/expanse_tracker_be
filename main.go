@@ -27,12 +27,14 @@ func main() {
 	categoryController := controllers.NewCategoryController(cfg.DB)
 	transactionController := controllers.NewTransactionController(cfg.DB)
 	balanceController := controllers.NewBalanceController(cfg.DB)
+	walletController := controllers.NewWalletController(cfg.DB) // cfg.DB is *pgxpool.Pool
 
 	// Register routes
 	userController.RegisterRoutes(r)
 	categoryController.RegisterRoutes(r)
 	transactionController.RegisterRoutes(r)
 	balanceController.RegisterRoutes(r)
+	walletController.RegisterRoutes(r)
 
 	// Apply middleware to all routes (order matters: logging -> CORS)
 	// Logging middleware must be first to capture all requests

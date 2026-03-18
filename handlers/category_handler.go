@@ -23,6 +23,7 @@ func NewCategoryHandler(db db.DBTX) *CategoryHandler {
 type CategoryInput struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	ParentID    *int   `json:"parent_id"`
 }
 
 func (h *CategoryHandler) GetCategories(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +49,12 @@ func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	category, err := h.model.Create(r.Context(), input.Name, input.Description)
+	var parentID *int32
+	if input.ParentID != nil {
+		id := int32(*input.ParentID)
+		parentID = &id
+	}
+	category, err := h.model.Create(r.Context(), input.Name, input.Description, parentID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -103,6 +109,24 @@ func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(category)
+}
+
+func (h *CategoryHandler) GetSubCategories(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid category ID", http.StatusBadRequest)
+		return
+	}
+
+	subCategories, err := h.model.GetSubCategories(r.Context(), int32(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(subCategories)
 }
 
 func (h *CategoryHandler) DeleteCategory(w http.ResponseWriter, r *http.Request) {

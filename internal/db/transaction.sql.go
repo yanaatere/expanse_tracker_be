@@ -12,9 +12,9 @@ import (
 )
 
 const createTransaction = `-- name: CreateTransaction :one
-INSERT INTO transactions (user_id, type, amount, description, category_id, transaction_date)
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, user_id, type, amount, description, category_id, transaction_date, created_at, updated_at
+INSERT INTO transactions (user_id, type, amount, description, category_id, sub_category_id, wallet_id, transaction_date, receipt_image_url)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING id, user_id, type, amount, description, category_id, sub_category_id, wallet_id, receipt_image_url, transaction_date, created_at, updated_at
 `
 
 type CreateTransactionParams struct {
@@ -23,7 +23,10 @@ type CreateTransactionParams struct {
 	Amount          pgtype.Numeric `json:"amount"`
 	Description     pgtype.Text    `json:"description"`
 	CategoryID      pgtype.Int4    `json:"category_id"`
+	SubCategoryID   pgtype.Int4    `json:"sub_category_id"`
+	WalletID        pgtype.Int4    `json:"wallet_id"`
 	TransactionDate pgtype.Date    `json:"transaction_date"`
+	ReceiptImageUrl pgtype.Text    `json:"receipt_image_url"`
 }
 
 func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error) {
@@ -33,7 +36,10 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		arg.Amount,
 		arg.Description,
 		arg.CategoryID,
+		arg.SubCategoryID,
+		arg.WalletID,
 		arg.TransactionDate,
+		arg.ReceiptImageUrl,
 	)
 	var i Transaction
 	err := row.Scan(
@@ -43,6 +49,9 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		&i.Amount,
 		&i.Description,
 		&i.CategoryID,
+		&i.SubCategoryID,
+		&i.WalletID,
+		&i.ReceiptImageUrl,
 		&i.TransactionDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -66,7 +75,7 @@ func (q *Queries) DeleteTransaction(ctx context.Context, arg DeleteTransactionPa
 }
 
 const getDashboardStats = `-- name: GetDashboardStats :one
-SELECT 
+SELECT
     COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0)::numeric AS total_income,
     COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0)::numeric AS total_expense
 FROM transactions
@@ -86,9 +95,15 @@ func (q *Queries) GetDashboardStats(ctx context.Context, userID int32) (GetDashb
 }
 
 const getTransaction = `-- name: GetTransaction :one
-SELECT t.id, t.user_id, t.type, t.amount, t.description, t.category_id, c.name as category_name, t.transaction_date, t.created_at, t.updated_at
+SELECT t.id, t.user_id, t.type, t.amount, t.description,
+       t.category_id, c.name as category_name,
+       t.sub_category_id, sc.name as sub_category_name,
+       t.wallet_id, w.name as wallet_name,
+       t.transaction_date, t.created_at, t.updated_at
 FROM transactions t
 LEFT JOIN categories c ON t.category_id = c.id
+LEFT JOIN categories sc ON t.sub_category_id = sc.id
+LEFT JOIN wallets w ON t.wallet_id = w.id
 WHERE t.id = $1 AND t.user_id = $2 LIMIT 1
 `
 
@@ -105,6 +120,11 @@ type GetTransactionRow struct {
 	Description     pgtype.Text      `json:"description"`
 	CategoryID      pgtype.Int4      `json:"category_id"`
 	CategoryName    pgtype.Text      `json:"category_name"`
+	SubCategoryID   pgtype.Int4      `json:"sub_category_id"`
+	SubCategoryName pgtype.Text      `json:"sub_category_name"`
+	WalletID        pgtype.Int4      `json:"wallet_id"`
+	WalletName      pgtype.Text      `json:"wallet_name"`
+	ReceiptImageUrl pgtype.Text      `json:"receipt_image_url"`
 	TransactionDate pgtype.Date      `json:"transaction_date"`
 	CreatedAt       pgtype.Timestamp `json:"created_at"`
 	UpdatedAt       pgtype.Timestamp `json:"updated_at"`
@@ -121,6 +141,11 @@ func (q *Queries) GetTransaction(ctx context.Context, arg GetTransactionParams) 
 		&i.Description,
 		&i.CategoryID,
 		&i.CategoryName,
+		&i.SubCategoryID,
+		&i.SubCategoryName,
+		&i.WalletID,
+		&i.WalletName,
+		&i.ReceiptImageUrl,
 		&i.TransactionDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -129,9 +154,15 @@ func (q *Queries) GetTransaction(ctx context.Context, arg GetTransactionParams) 
 }
 
 const listTransactions = `-- name: ListTransactions :many
-SELECT t.id, t.user_id, t.type, t.amount, t.description, t.category_id, c.name as category_name, t.transaction_date, t.created_at, t.updated_at
+SELECT t.id, t.user_id, t.type, t.amount, t.description,
+       t.category_id, c.name as category_name,
+       t.sub_category_id, sc.name as sub_category_name,
+       t.wallet_id, w.name as wallet_name,
+       t.transaction_date, t.created_at, t.updated_at
 FROM transactions t
 LEFT JOIN categories c ON t.category_id = c.id
+LEFT JOIN categories sc ON t.sub_category_id = sc.id
+LEFT JOIN wallets w ON t.wallet_id = w.id
 WHERE t.user_id = $1
 ORDER BY t.transaction_date DESC, t.created_at DESC
 `
@@ -144,6 +175,11 @@ type ListTransactionsRow struct {
 	Description     pgtype.Text      `json:"description"`
 	CategoryID      pgtype.Int4      `json:"category_id"`
 	CategoryName    pgtype.Text      `json:"category_name"`
+	SubCategoryID   pgtype.Int4      `json:"sub_category_id"`
+	SubCategoryName pgtype.Text      `json:"sub_category_name"`
+	WalletID        pgtype.Int4      `json:"wallet_id"`
+	WalletName      pgtype.Text      `json:"wallet_name"`
+	ReceiptImageUrl pgtype.Text      `json:"receipt_image_url"`
 	TransactionDate pgtype.Date      `json:"transaction_date"`
 	CreatedAt       pgtype.Timestamp `json:"created_at"`
 	UpdatedAt       pgtype.Timestamp `json:"updated_at"`
@@ -166,6 +202,11 @@ func (q *Queries) ListTransactions(ctx context.Context, userID int32) ([]ListTra
 			&i.Description,
 			&i.CategoryID,
 			&i.CategoryName,
+			&i.SubCategoryID,
+			&i.SubCategoryName,
+			&i.WalletID,
+			&i.WalletName,
+			&i.ReceiptImageUrl,
 			&i.TransactionDate,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -174,17 +215,15 @@ func (q *Queries) ListTransactions(ctx context.Context, userID int32) ([]ListTra
 		}
 		items = append(items, i)
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+	return items, rows.Err()
 }
 
 const updateTransaction = `-- name: UpdateTransaction :one
 UPDATE transactions
-SET type = $3, amount = $4, description = $5, category_id = $6, transaction_date = $7, updated_at = CURRENT_TIMESTAMP
+SET type = $3, amount = $4, description = $5, category_id = $6, sub_category_id = $7,
+    wallet_id = $8, transaction_date = $9, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND user_id = $2
-RETURNING id, user_id, type, amount, description, category_id, transaction_date, created_at, updated_at
+RETURNING id, user_id, type, amount, description, category_id, sub_category_id, wallet_id, receipt_image_url, transaction_date, created_at, updated_at
 `
 
 type UpdateTransactionParams struct {
@@ -194,6 +233,8 @@ type UpdateTransactionParams struct {
 	Amount          pgtype.Numeric `json:"amount"`
 	Description     pgtype.Text    `json:"description"`
 	CategoryID      pgtype.Int4    `json:"category_id"`
+	SubCategoryID   pgtype.Int4    `json:"sub_category_id"`
+	WalletID        pgtype.Int4    `json:"wallet_id"`
 	TransactionDate pgtype.Date    `json:"transaction_date"`
 }
 
@@ -205,6 +246,8 @@ func (q *Queries) UpdateTransaction(ctx context.Context, arg UpdateTransactionPa
 		arg.Amount,
 		arg.Description,
 		arg.CategoryID,
+		arg.SubCategoryID,
+		arg.WalletID,
 		arg.TransactionDate,
 	)
 	var i Transaction
@@ -215,6 +258,9 @@ func (q *Queries) UpdateTransaction(ctx context.Context, arg UpdateTransactionPa
 		&i.Amount,
 		&i.Description,
 		&i.CategoryID,
+		&i.SubCategoryID,
+		&i.WalletID,
+		&i.ReceiptImageUrl,
 		&i.TransactionDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,

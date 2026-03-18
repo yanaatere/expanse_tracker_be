@@ -29,13 +29,22 @@ func (m *CategoryModel) Get(ctx context.Context, id int32) (*Category, error) {
 	return &c, nil
 }
 
-func (m *CategoryModel) Create(ctx context.Context, name, description string) (*Category, error) {
+func (m *CategoryModel) GetSubCategories(ctx context.Context, parentID int32) ([]Category, error) {
+	return m.q.ListSubCategories(ctx, parentID)
+}
+
+func (m *CategoryModel) Create(ctx context.Context, name, description string, parentID *int32) (*Category, error) {
+	pid := pgtype.Int4{Valid: false}
+	if parentID != nil {
+		pid = pgtype.Int4{Int32: *parentID, Valid: true}
+	}
 	c, err := m.q.CreateCategory(ctx, db.CreateCategoryParams{
 		Name: name,
 		Description: pgtype.Text{
 			String: description,
 			Valid:  true,
 		},
+		ParentID: pid,
 	})
 	if err != nil {
 		return nil, err

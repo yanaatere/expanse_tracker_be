@@ -12,23 +12,25 @@ import (
 )
 
 const createCategory = `-- name: CreateCategory :one
-INSERT INTO categories (name, description, created_at, updated_at)
-VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-RETURNING id, name, description, created_at, updated_at
+INSERT INTO categories (name, description, parent_id, created_at, updated_at)
+VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+RETURNING id, name, description, parent_id, created_at, updated_at
 `
 
 type CreateCategoryParams struct {
 	Name        string      `json:"name"`
 	Description pgtype.Text `json:"description"`
+	ParentID    pgtype.Int4 `json:"parent_id"`
 }
 
 func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error) {
-	row := q.db.QueryRow(ctx, createCategory, arg.Name, arg.Description)
+	row := q.db.QueryRow(ctx, createCategory, arg.Name, arg.Description, arg.ParentID)
 	var i Category
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Description,
+		&i.ParentID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -46,7 +48,7 @@ func (q *Queries) DeleteCategory(ctx context.Context, id int32) error {
 }
 
 const getCategory = `-- name: GetCategory :one
-SELECT id, name, description, created_at, updated_at
+SELECT id, name, description, parent_id, created_at, updated_at
 FROM categories
 WHERE id = $1 LIMIT 1
 `
@@ -58,6 +60,7 @@ func (q *Queries) GetCategory(ctx context.Context, id int32) (Category, error) {
 		&i.ID,
 		&i.Name,
 		&i.Description,
+		&i.ParentID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -65,8 +68,9 @@ func (q *Queries) GetCategory(ctx context.Context, id int32) (Category, error) {
 }
 
 const listCategories = `-- name: ListCategories :many
-SELECT id, name, description, created_at, updated_at
+SELECT id, name, description, parent_id, created_at, updated_at
 FROM categories
+WHERE parent_id IS NULL
 ORDER BY name
 `
 
@@ -83,6 +87,7 @@ func (q *Queries) ListCategories(ctx context.Context) ([]Category, error) {
 			&i.ID,
 			&i.Name,
 			&i.Description,
+			&i.ParentID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -90,17 +95,45 @@ func (q *Queries) ListCategories(ctx context.Context) ([]Category, error) {
 		}
 		items = append(items, i)
 	}
-	if err := rows.Err(); err != nil {
+	return items, rows.Err()
+}
+
+const listSubCategories = `-- name: ListSubCategories :many
+SELECT id, name, description, parent_id, created_at, updated_at
+FROM categories
+WHERE parent_id = $1
+ORDER BY name
+`
+
+func (q *Queries) ListSubCategories(ctx context.Context, parentID int32) ([]Category, error) {
+	rows, err := q.db.Query(ctx, listSubCategories, parentID)
+	if err != nil {
 		return nil, err
 	}
-	return items, nil
+	defer rows.Close()
+	var items []Category
+	for rows.Next() {
+		var i Category
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.ParentID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	return items, rows.Err()
 }
 
 const updateCategory = `-- name: UpdateCategory :one
 UPDATE categories
 SET name = $2, description = $3, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
-RETURNING id, name, description, created_at, updated_at
+RETURNING id, name, description, parent_id, created_at, updated_at
 `
 
 type UpdateCategoryParams struct {
@@ -116,6 +149,7 @@ func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) 
 		&i.ID,
 		&i.Name,
 		&i.Description,
+		&i.ParentID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

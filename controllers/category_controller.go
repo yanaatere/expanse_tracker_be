@@ -23,6 +23,7 @@ func (c *CategoryController) RegisterRoutes(router *mux.Router) {
 	// All category routes are protected - require JWT authentication
 	router.Handle("/api/categories", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetCategories))).Methods("GET")
 	router.Handle("/api/categories/{id:[0-9]+}", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetCategory))).Methods("GET")
+	router.Handle("/api/categories/{id:[0-9]+}/sub-categories", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetSubCategories))).Methods("GET")
 	router.Handle("/api/categories", auth.JWTMiddleware(http.HandlerFunc(c.handler.CreateCategory))).Methods("POST")
 	router.Handle("/api/categories/{id:[0-9]+}", auth.JWTMiddleware(http.HandlerFunc(c.handler.UpdateCategory))).Methods("PUT")
 	router.Handle("/api/categories/{id:[0-9]+}", auth.JWTMiddleware(http.HandlerFunc(c.handler.DeleteCategory))).Methods("DELETE")
