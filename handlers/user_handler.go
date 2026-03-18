@@ -25,6 +25,13 @@ type UserInput struct {
 	Email    string `json:"email"`
 }
 
+// @Summary Get users
+// @Description Get all users (protected)
+// @Tags Users
+// @Produce json
+// @Success 200 {array} object
+// @Failure 500 {object} MessageResponse
+// @Router /api/users [get]
 func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := h.model.GetAll(r.Context())
 	if err != nil {
@@ -36,6 +43,15 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(users)
 }
 
+// @Summary Get user
+// @Description Get user by id (protected)
+// @Tags Users
+// @Produce json
+// @Param id path int true "User ID"
+// @Success 200 {object} object
+// @Failure 400 {object} MessageResponse
+// @Failure 404 {object} MessageResponse
+// @Router /api/users/{id} [get]
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -58,6 +74,15 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
+// @Summary Create user
+// @Description Create a user (protected)
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param request body UserInput true "Create user request"
+// @Success 201 {object} object
+// @Failure 400 {object} MessageResponse
+// @Router /api/users [post]
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var input UserInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -76,6 +101,17 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
+// @Summary Update user
+// @Description Update user info (protected)
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param id path int true "User ID"
+// @Param request body UserInput true "Update user request"
+// @Success 200 {object} object
+// @Failure 400 {object} MessageResponse
+// @Failure 404 {object} MessageResponse
+// @Router /api/users/{id} [put]
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -104,6 +140,14 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
+// @Summary Delete user
+// @Description Delete user by id (protected)
+// @Tags Users
+// @Param id path int true "User ID"
+// @Success 204 {object} MessageResponse
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/users/{id} [delete]
 func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])

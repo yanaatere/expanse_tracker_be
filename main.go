@@ -1,3 +1,16 @@
+// @title Expense Tracker API
+// @version 1.0
+// @description Expense Tracker REST API for users, categories, transactions, balances, wallets.
+// @termsOfService http://swagger.io/terms/
+// @contact.name API Support
+// @contact.url http://www.swagger.io/support
+// @contact.email support@expense-tracker.local
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+// @host localhost:8080
+// @BasePath /
+// @schemes http
+
 package main
 
 import (
@@ -6,8 +19,10 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"github.com/yanaatere/expense_tracking/config"
 	"github.com/yanaatere/expense_tracking/controllers"
+	_ "github.com/yanaatere/expense_tracking/docs"
 	"github.com/yanaatere/expense_tracking/logger"
 	"github.com/yanaatere/expense_tracking/middleware"
 )
@@ -35,6 +50,11 @@ func main() {
 	transactionController.RegisterRoutes(r)
 	balanceController.RegisterRoutes(r)
 	walletController.RegisterRoutes(r)
+
+	// Swagger route (enabled only outside production)
+	if os.Getenv("ENVIRONMENT") != "production" {
+		r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
+	}
 
 	// Apply middleware to all routes (order matters: logging -> CORS)
 	// Logging middleware must be first to capture all requests

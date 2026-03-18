@@ -52,6 +52,17 @@ type MessageResponse struct {
 }
 
 // Register handler
+// @Summary Register a new user
+// @Description Register a new user and return JWT token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body RegisterRequest true "Register request"
+// @Success 201 {object} AuthResponse
+// @Failure 400 {object} MessageResponse
+// @Failure 409 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -110,6 +121,16 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 // Login handler
+// @Summary Login user
+// @Description Authenticate a user and return JWT token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "Login request"
+// @Success 200 {object} AuthResponse
+// @Failure 400 {object} MessageResponse
+// @Failure 401 {object} MessageResponse
+// @Router /api/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -152,6 +173,15 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // ForgotPassword handler
+// @Summary Forgot password
+// @Description Request password reset token by email
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body ForgotPasswordRequest true "Forgot password request"
+// @Success 200 {object} MessageResponse
+// @Failure 400 {object} MessageResponse
+// @Router /api/auth/forgot-password [post]
 func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	var req ForgotPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -204,6 +234,16 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 }
 
 // ResetPassword handler
+// @Summary Reset password
+// @Description Reset password using reset token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body ResetPasswordRequest true "Reset password request"
+// @Success 200 {object} MessageResponse
+// @Failure 400 {object} MessageResponse
+// @Failure 401 {object} MessageResponse
+// @Router /api/auth/reset-password [post]
 func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var req ResetPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

@@ -24,6 +24,15 @@ type WalletInput struct {
 	Type   string `json:"type"`
 }
 
+// @Summary Get wallets
+// @Description Get all wallets for a user (protected)
+// @Tags Wallets
+// @Produce json
+// @Param user_id query int true "User ID"
+// @Success 200 {array} object
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/wallets [get]
 func (h *WalletHandler) GetWallets(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.URL.Query().Get("user_id")
 	if userIDStr == "" {
@@ -46,6 +55,16 @@ func (h *WalletHandler) GetWallets(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(wallets)
 }
 
+// @Summary Get wallet
+// @Description Get wallet by id for a user (protected)
+// @Tags Wallets
+// @Produce json
+// @Param id path int true "Wallet ID"
+// @Param user_id query int true "User ID"
+// @Success 200 {object} object
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/wallets/{id} [get]
 func (h *WalletHandler) GetWallet(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -75,6 +94,16 @@ func (h *WalletHandler) GetWallet(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(wallet)
 }
 
+// @Summary Create wallet
+// @Description Create wallet for a user (protected)
+// @Tags Wallets
+// @Accept json
+// @Produce json
+// @Param request body WalletInput true "Create wallet request"
+// @Success 201 {object} object
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/wallets [post]
 func (h *WalletHandler) CreateWallet(w http.ResponseWriter, r *http.Request) {
 	var input WalletInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -100,6 +129,17 @@ func (h *WalletHandler) CreateWallet(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(wallet)
 }
 
+// @Summary Update wallet
+// @Description Update wallet details (protected)
+// @Tags Wallets
+// @Accept json
+// @Produce json
+// @Param id path int true "Wallet ID"
+// @Param request body WalletInput true "Update wallet request"
+// @Success 200 {object} object
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/wallets/{id} [put]
 func (h *WalletHandler) UpdateWallet(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -128,6 +168,15 @@ func (h *WalletHandler) UpdateWallet(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(wallet)
 }
 
+// @Summary Delete wallet
+// @Description Delete a wallet by id for a user (protected)
+// @Tags Wallets
+// @Param id path int true "Wallet ID"
+// @Param user_id query int true "User ID"
+// @Success 204 {object} MessageResponse
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/wallets/{id} [delete]
 func (h *WalletHandler) DeleteWallet(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])

@@ -1,0 +1,990 @@
+basePath: /
+definitions:
+  handlers.AuthResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      token:
+        type: string
+      username:
+        type: string
+    type: object
+  handlers.CategoryInput:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      parent_id:
+        type: integer
+    type: object
+  handlers.ForgotPasswordRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  handlers.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  handlers.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  handlers.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  handlers.ResetPasswordRequest:
+    properties:
+      new_password:
+        type: string
+      token:
+        type: string
+    type: object
+  handlers.TransactionInput:
+    properties:
+      amount:
+        type: number
+      category_id:
+        type: integer
+      date:
+        description: Expects "2006-01-02"
+        type: string
+      description:
+        type: string
+      receipt_image_url:
+        type: string
+      sub_category_id:
+        type: integer
+      type:
+        type: string
+      user_id:
+        type: integer
+      wallet_id:
+        type: integer
+    type: object
+  handlers.UserInput:
+    properties:
+      email:
+        type: string
+      username:
+        type: string
+    type: object
+  handlers.WalletInput:
+    properties:
+      name:
+        type: string
+      type:
+        type: string
+      user_id:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@expense-tracker.local
+    name: API Support
+    url: http://www.swagger.io/support
+  description: Expense Tracker REST API for users, categories, transactions, balances,
+    wallets.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Expense Tracker API
+  version: "1.0"
+paths:
+  /api/auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Request password reset token by email
+      parameters:
+      - description: Forgot password request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Forgot password
+      tags:
+      - Auth
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate a user and return JWT token
+      parameters:
+      - description: Login request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Login user
+      tags:
+      - Auth
+  /api/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user and return JWT token
+      parameters:
+      - description: Register request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Register a new user
+      tags:
+      - Auth
+  /api/auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Reset password using reset token
+      parameters:
+      - description: Reset password request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Reset password
+      tags:
+      - Auth
+  /api/balance:
+    get:
+      description: Get overall balance for user (protected)
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema: {}
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Get balance
+      tags:
+      - Balances
+  /api/balance/category:
+    get:
+      description: Get category-wise balance summary for user (protected)
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items: {}
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Get balance by category
+      tags:
+      - Balances
+  /api/balance/monthly:
+    get:
+      description: Get monthly balance breakdown for user (protected)
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items: {}
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Get monthly balance
+      tags:
+      - Balances
+  /api/balance/range:
+    get:
+      description: Get balance summary for date range (protected)
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: start_date
+        required: true
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: end_date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema: {}
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Get balance by date range
+      tags:
+      - Balances
+  /api/balance/recalculate:
+    post:
+      description: Recalculate user balance from transactions (protected)
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema: {}
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Recalculate balance
+      tags:
+      - Balances
+  /api/categories:
+    get:
+      description: Get top-level categories (parent_id IS NULL) (protected)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: List categories
+      tags:
+      - Categories
+    post:
+      consumes:
+      - application/json
+      description: Create a new category or subcategory (protected)
+      parameters:
+      - description: Category create request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CategoryInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Create category
+      tags:
+      - Categories
+  /api/categories/{id}:
+    delete:
+      description: Delete category by id (protected)
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Delete category
+      tags:
+      - Categories
+    get:
+      description: Get single category by id (protected)
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Get category
+      tags:
+      - Categories
+    put:
+      consumes:
+      - application/json
+      description: Update category metadata (protected)
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Category update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CategoryInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Update category
+      tags:
+      - Categories
+  /api/categories/{id}/sub-categories:
+    get:
+      description: Get subcategories of a category (protected)
+      parameters:
+      - description: Parent Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: List sub-categories
+      tags:
+      - Categories
+  /api/dashboard/stats:
+    get:
+      description: Get transaction dashboard stats for a user (protected)
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema: {}
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Get dashboard stats
+      tags:
+      - Transactions
+  /api/transactions:
+    get:
+      description: Get all transactions for a user (protected)
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Get transactions
+      tags:
+      - Transactions
+    post:
+      consumes:
+      - application/json
+      description: Create a new transaction record (protected)
+      parameters:
+      - description: Transaction create request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.TransactionInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Create transaction
+      tags:
+      - Transactions
+  /api/transactions/{id}:
+    delete:
+      description: Delete transaction by id for a user (protected)
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Delete transaction
+      tags:
+      - Transactions
+    get:
+      description: Get transaction by id for a user (protected)
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Get transaction
+      tags:
+      - Transactions
+    put:
+      consumes:
+      - application/json
+      description: Update transaction record by id (protected)
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Transaction update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.TransactionInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Update transaction
+      tags:
+      - Transactions
+  /api/users:
+    get:
+      description: Get all users (protected)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Get users
+      tags:
+      - Users
+    post:
+      consumes:
+      - application/json
+      description: Create a user (protected)
+      parameters:
+      - description: Create user request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UserInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Create user
+      tags:
+      - Users
+  /api/users/{id}:
+    delete:
+      description: Delete user by id (protected)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Delete user
+      tags:
+      - Users
+    get:
+      description: Get user by id (protected)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Get user
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Update user info (protected)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update user request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UserInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Update user
+      tags:
+      - Users
+  /api/wallets:
+    get:
+      description: Get all wallets for a user (protected)
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Get wallets
+      tags:
+      - Wallets
+    post:
+      consumes:
+      - application/json
+      description: Create wallet for a user (protected)
+      parameters:
+      - description: Create wallet request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.WalletInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Create wallet
+      tags:
+      - Wallets
+  /api/wallets/{id}:
+    delete:
+      description: Delete a wallet by id for a user (protected)
+      parameters:
+      - description: Wallet ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Delete wallet
+      tags:
+      - Wallets
+    get:
+      description: Get wallet by id for a user (protected)
+      parameters:
+      - description: Wallet ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Get wallet
+      tags:
+      - Wallets
+    put:
+      consumes:
+      - application/json
+      description: Update wallet details (protected)
+      parameters:
+      - description: Wallet ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update wallet request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.WalletInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Update wallet
+      tags:
+      - Wallets
+schemes:
+- http
+swagger: "2.0"

@@ -25,6 +25,15 @@ func NewBalanceHandler(pool *pgxpool.Pool) *BalanceHandler {
 // total_income and total_expense are computed from transactions.
 // total_balance is read from the balances table.
 // GET /api/balance?user_id=1
+// @Summary Get balance
+// @Description Get overall balance for user (protected)
+// @Tags Balances
+// @Produce json
+// @Param user_id query int true "User ID"
+// @Success 200 {object} interface{}
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/balance [get]
 func (h *BalanceHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 	userID, err := parseUserID(r)
 	if err != nil {
@@ -44,6 +53,15 @@ func (h *BalanceHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 
 // GetMonthlyBalance returns the monthly breakdown of income, expense, and net.
 // GET /api/balance/monthly?user_id=1
+// @Summary Get monthly balance
+// @Description Get monthly balance breakdown for user (protected)
+// @Tags Balances
+// @Produce json
+// @Param user_id query int true "User ID"
+// @Success 200 {array} interface{}
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/balance/monthly [get]
 func (h *BalanceHandler) GetMonthlyBalance(w http.ResponseWriter, r *http.Request) {
 	userID, err := parseUserID(r)
 	if err != nil {
@@ -63,6 +81,17 @@ func (h *BalanceHandler) GetMonthlyBalance(w http.ResponseWriter, r *http.Reques
 
 // GetBalanceByDateRange returns balance filtered by a date range.
 // GET /api/balance/range?user_id=1&start_date=2026-01-01&end_date=2026-01-31
+// @Summary Get balance by date range
+// @Description Get balance summary for date range (protected)
+// @Tags Balances
+// @Produce json
+// @Param user_id query int true "User ID"
+// @Param start_date query string true "Start date (YYYY-MM-DD)"
+// @Param end_date query string true "End date (YYYY-MM-DD)"
+// @Success 200 {object} interface{}
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/balance/range [get]
 func (h *BalanceHandler) GetBalanceByDateRange(w http.ResponseWriter, r *http.Request) {
 	userID, err := parseUserID(r)
 	if err != nil {
@@ -105,6 +134,15 @@ func (h *BalanceHandler) GetBalanceByDateRange(w http.ResponseWriter, r *http.Re
 
 // GetBalanceByCategory returns balance breakdown per category.
 // GET /api/balance/category?user_id=1
+// @Summary Get balance by category
+// @Description Get category-wise balance summary for user (protected)
+// @Tags Balances
+// @Produce json
+// @Param user_id query int true "User ID"
+// @Success 200 {array} interface{}
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/balance/category [get]
 func (h *BalanceHandler) GetBalanceByCategory(w http.ResponseWriter, r *http.Request) {
 	userID, err := parseUserID(r)
 	if err != nil {
@@ -124,6 +162,15 @@ func (h *BalanceHandler) GetBalanceByCategory(w http.ResponseWriter, r *http.Req
 
 // RecalculateBalance recalculates the balance from scratch (safety net).
 // POST /api/balance/recalculate?user_id=1
+// @Summary Recalculate balance
+// @Description Recalculate user balance from transactions (protected)
+// @Tags Balances
+// @Produce json
+// @Param user_id query int true "User ID"
+// @Success 200 {object} interface{}
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/balance/recalculate [post]
 func (h *BalanceHandler) RecalculateBalance(w http.ResponseWriter, r *http.Request) {
 	userID, err := parseUserID(r)
 	if err != nil {

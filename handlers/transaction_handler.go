@@ -34,6 +34,16 @@ type TransactionInput struct {
 	ReceiptImageUrl string  `json:"receipt_image_url"`
 }
 
+// @Summary Create transaction
+// @Description Create a new transaction record (protected)
+// @Tags Transactions
+// @Accept json
+// @Produce json
+// @Param request body TransactionInput true "Transaction create request"
+// @Success 201 {object} object
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/transactions [post]
 func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 	var input TransactionInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -99,6 +109,15 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 	json.NewEncoder(w).Encode(transaction)
 }
 
+// @Summary Get transactions
+// @Description Get all transactions for a user (protected)
+// @Tags Transactions
+// @Produce json
+// @Param user_id query int true "User ID"
+// @Success 200 {array} object
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/transactions [get]
 func (h *TransactionHandler) GetTransactions(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.URL.Query().Get("user_id")
 	if userIDStr == "" {
@@ -121,6 +140,16 @@ func (h *TransactionHandler) GetTransactions(w http.ResponseWriter, r *http.Requ
 	json.NewEncoder(w).Encode(transactions)
 }
 
+// @Summary Get transaction
+// @Description Get transaction by id for a user (protected)
+// @Tags Transactions
+// @Produce json
+// @Param id path int true "Transaction ID"
+// @Param user_id query int true "User ID"
+// @Success 200 {object} object
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/transactions/{id} [get]
 func (h *TransactionHandler) GetTransaction(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -150,6 +179,17 @@ func (h *TransactionHandler) GetTransaction(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(transaction)
 }
 
+// @Summary Update transaction
+// @Description Update transaction record by id (protected)
+// @Tags Transactions
+// @Accept json
+// @Produce json
+// @Param id path int true "Transaction ID"
+// @Param request body TransactionInput true "Transaction update request"
+// @Success 200 {object} object
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/transactions/{id} [put]
 func (h *TransactionHandler) UpdateTransaction(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -218,6 +258,15 @@ func (h *TransactionHandler) UpdateTransaction(w http.ResponseWriter, r *http.Re
 	json.NewEncoder(w).Encode(transaction)
 }
 
+// @Summary Delete transaction
+// @Description Delete transaction by id for a user (protected)
+// @Tags Transactions
+// @Param id path int true "Transaction ID"
+// @Param user_id query int true "User ID"
+// @Success 204 {object} MessageResponse
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/transactions/{id} [delete]
 func (h *TransactionHandler) DeleteTransaction(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -250,6 +299,15 @@ func (h *TransactionHandler) DeleteTransaction(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary Get dashboard stats
+// @Description Get transaction dashboard stats for a user (protected)
+// @Tags Transactions
+// @Produce json
+// @Param user_id query int true "User ID"
+// @Success 200 {object} interface{}
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/dashboard/stats [get]
 func (h *TransactionHandler) GetDashboardStats(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.URL.Query().Get("user_id")
 	if userIDStr == "" {
