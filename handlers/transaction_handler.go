@@ -51,20 +51,20 @@ type TransactionInput struct {
 func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 	var input TransactionInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if input.UserID == 0 {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "User ID is required")
 		return
 	}
 	if input.Type == "" {
-		http.Error(w, "Type (income/expense) is required", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Type (income/expense) is required")
 		return
 	}
 	if input.Amount <= 0 {
-		http.Error(w, "Amount must be positive", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Amount must be positive")
 		return
 	}
 	if input.Date == "" {
@@ -76,7 +76,7 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		// Try parsing DD/MM/YYYY just in case relevant to user locale
 		date, err = time.Parse("02/01/2006", input.Date)
 		if err != nil {
-			http.Error(w, "Invalid date format. Use YYYY-MM-DD", http.StatusBadRequest)
+			WriteError(w, http.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD")
 			return
 		}
 	}
@@ -104,13 +104,11 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 
 	transaction, err := h.model.Create(r.Context(), int32(input.UserID), input.Type, input.Amount, input.Description, catID, subCatID, walletID, pgDate, input.ReceiptImageUrl)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(transaction)
+	WriteSuccess(w, http.StatusCreated, transaction)
 }
 
 // @Summary Get transactions
@@ -125,23 +123,22 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 func (h *TransactionHandler) GetTransactions(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.URL.Query().Get("user_id")
 	if userIDStr == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "User ID is required")
 		return
 	}
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		http.Error(w, "Invalid User ID", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid User ID")
 		return
 	}
 
 	transactions, err := h.model.GetAll(r.Context(), int32(userID))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(transactions)
+	WriteSuccess(w, http.StatusOK, transactions)
 }
 
 // @Summary Get transaction
@@ -158,29 +155,28 @@ func (h *TransactionHandler) GetTransaction(w http.ResponseWriter, r *http.Reque
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		http.Error(w, "Invalid transaction ID", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid transaction ID")
 		return
 	}
 
 	userIDStr := r.URL.Query().Get("user_id")
 	if userIDStr == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "User ID is required")
 		return
 	}
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		http.Error(w, "Invalid User ID", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid User ID")
 		return
 	}
 
 	transaction, err := h.model.Get(r.Context(), int32(id), int32(userID))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(transaction)
+	WriteSuccess(w, http.StatusOK, transaction)
 }
 
 // @Summary Update transaction
@@ -198,18 +194,18 @@ func (h *TransactionHandler) UpdateTransaction(w http.ResponseWriter, r *http.Re
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		http.Error(w, "Invalid transaction ID", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid transaction ID")
 		return
 	}
 
 	var input TransactionInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if input.UserID == 0 {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "User ID is required")
 		return
 	}
 
@@ -219,15 +215,11 @@ func (h *TransactionHandler) UpdateTransaction(w http.ResponseWriter, r *http.Re
 		if err != nil {
 			date, err = time.Parse("02/01/2006", input.Date)
 			if err != nil {
-				http.Error(w, "Invalid date format. Use YYYY-MM-DD", http.StatusBadRequest)
+				WriteError(w, http.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD")
 				return
 			}
 		}
 	} else {
-		// Use current time or previous time? Better to require it or fetch existing.
-		// For simplicity, let's just use current time if missing or fail?
-		// Or fetch existing. But that's extra query.
-		// Let's assume date is provided or default to now.
 		date = time.Now()
 	}
 
@@ -254,12 +246,11 @@ func (h *TransactionHandler) UpdateTransaction(w http.ResponseWriter, r *http.Re
 
 	transaction, err := h.model.Update(r.Context(), int32(id), int32(input.UserID), input.Type, input.Amount, input.Description, catID, subCatID, walletID, pgDate)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(transaction)
+	WriteSuccess(w, http.StatusOK, transaction)
 }
 
 // @Summary Delete transaction
@@ -275,28 +266,24 @@ func (h *TransactionHandler) DeleteTransaction(w http.ResponseWriter, r *http.Re
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		http.Error(w, "Invalid transaction ID", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid transaction ID")
 		return
 	}
 
 	userIDStr := r.URL.Query().Get("user_id")
 	if userIDStr == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "User ID is required")
 		return
 	}
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		http.Error(w, "Invalid User ID", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid User ID")
 		return
 	}
 
 	err = h.model.Delete(r.Context(), int32(id), int32(userID))
 	if err != nil {
-		// if err == sql.ErrNoRows { // sql package removed
-		// 	http.Error(w, "Transaction not found", http.StatusNotFound)
-		// 	return
-		// }
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -315,21 +302,20 @@ func (h *TransactionHandler) DeleteTransaction(w http.ResponseWriter, r *http.Re
 func (h *TransactionHandler) GetDashboardStats(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.URL.Query().Get("user_id")
 	if userIDStr == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "User ID is required")
 		return
 	}
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		http.Error(w, "Invalid User ID", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid User ID")
 		return
 	}
 
 	stats, err := h.model.GetDashboardStats(r.Context(), int32(userID))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(stats)
+	WriteSuccess(w, http.StatusOK, stats)
 }

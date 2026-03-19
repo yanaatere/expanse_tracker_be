@@ -40,23 +40,22 @@ type WalletInput struct {
 func (h *WalletHandler) GetWallets(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.URL.Query().Get("user_id")
 	if userIDStr == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "User ID is required")
 		return
 	}
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		http.Error(w, "Invalid User ID", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid User ID")
 		return
 	}
 
 	wallets, err := h.model.GetAll(r.Context(), int32(userID))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(wallets)
+	WriteSuccess(w, http.StatusOK, wallets)
 }
 
 // @Summary Get wallet
@@ -73,29 +72,28 @@ func (h *WalletHandler) GetWallet(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		http.Error(w, "Invalid wallet ID", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid wallet ID")
 		return
 	}
 
 	userIDStr := r.URL.Query().Get("user_id")
 	if userIDStr == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "User ID is required")
 		return
 	}
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		http.Error(w, "Invalid User ID", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid User ID")
 		return
 	}
 
 	wallet, err := h.model.Get(r.Context(), int32(id), int32(userID))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(wallet)
+	WriteSuccess(w, http.StatusOK, wallet)
 }
 
 // @Summary Create wallet
@@ -111,11 +109,11 @@ func (h *WalletHandler) GetWallet(w http.ResponseWriter, r *http.Request) {
 func (h *WalletHandler) CreateWallet(w http.ResponseWriter, r *http.Request) {
 	var input WalletInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	if input.UserID == 0 || input.Name == "" {
-		http.Error(w, "user_id and name are required", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "user_id and name are required")
 		return
 	}
 	if input.Type == "" {
@@ -124,13 +122,11 @@ func (h *WalletHandler) CreateWallet(w http.ResponseWriter, r *http.Request) {
 
 	wallet, err := h.model.Create(r.Context(), int32(input.UserID), input.Name, input.Type)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(wallet)
+	WriteSuccess(w, http.StatusCreated, wallet)
 }
 
 // @Summary Update wallet
@@ -148,28 +144,27 @@ func (h *WalletHandler) UpdateWallet(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		http.Error(w, "Invalid wallet ID", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid wallet ID")
 		return
 	}
 
 	var input WalletInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	if input.UserID == 0 {
-		http.Error(w, "user_id is required", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "user_id is required")
 		return
 	}
 
 	wallet, err := h.model.Update(r.Context(), int32(id), int32(input.UserID), input.Name, input.Type)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(wallet)
+	WriteSuccess(w, http.StatusOK, wallet)
 }
 
 // @Summary Delete wallet
@@ -185,23 +180,23 @@ func (h *WalletHandler) DeleteWallet(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		http.Error(w, "Invalid wallet ID", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid wallet ID")
 		return
 	}
 
 	userIDStr := r.URL.Query().Get("user_id")
 	if userIDStr == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "User ID is required")
 		return
 	}
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		http.Error(w, "Invalid User ID", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid User ID")
 		return
 	}
 
 	if err := h.model.Delete(r.Context(), int32(id), int32(userID)); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 

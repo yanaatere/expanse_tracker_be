@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -41,18 +40,17 @@ func NewBalanceHandlerWithModel(model BalanceModelInterface) *BalanceHandler {
 func (h *BalanceHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 	userID, err := parseUserID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	balance, err := h.model.GetUserBalance(r.Context(), int32(userID))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(balance)
+	WriteSuccess(w, http.StatusOK, balance)
 }
 
 // GetMonthlyBalance returns the monthly breakdown of income, expense, and net.
@@ -69,18 +67,17 @@ func (h *BalanceHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 func (h *BalanceHandler) GetMonthlyBalance(w http.ResponseWriter, r *http.Request) {
 	userID, err := parseUserID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	months, err := h.model.GetMonthlyBalance(r.Context(), int32(userID))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(months)
+	WriteSuccess(w, http.StatusOK, months)
 }
 
 // GetBalanceByDateRange returns balance filtered by a date range.
@@ -99,7 +96,7 @@ func (h *BalanceHandler) GetMonthlyBalance(w http.ResponseWriter, r *http.Reques
 func (h *BalanceHandler) GetBalanceByDateRange(w http.ResponseWriter, r *http.Request) {
 	userID, err := parseUserID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -107,19 +104,19 @@ func (h *BalanceHandler) GetBalanceByDateRange(w http.ResponseWriter, r *http.Re
 	endDateStr := r.URL.Query().Get("end_date")
 
 	if startDateStr == "" || endDateStr == "" {
-		http.Error(w, "start_date and end_date are required (format: YYYY-MM-DD)", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "start_date and end_date are required (format: YYYY-MM-DD)")
 		return
 	}
 
 	startDate, err := time.Parse("2006-01-02", startDateStr)
 	if err != nil {
-		http.Error(w, "Invalid start_date format. Use YYYY-MM-DD", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid start_date format. Use YYYY-MM-DD")
 		return
 	}
 
 	endDate, err := time.Parse("2006-01-02", endDateStr)
 	if err != nil {
-		http.Error(w, "Invalid end_date format. Use YYYY-MM-DD", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid end_date format. Use YYYY-MM-DD")
 		return
 	}
 
@@ -128,12 +125,11 @@ func (h *BalanceHandler) GetBalanceByDateRange(w http.ResponseWriter, r *http.Re
 
 	balance, err := h.model.GetBalanceByDateRange(r.Context(), int32(userID), pgStartDate, pgEndDate)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(balance)
+	WriteSuccess(w, http.StatusOK, balance)
 }
 
 // GetBalanceByCategory returns balance breakdown per category.
@@ -150,18 +146,17 @@ func (h *BalanceHandler) GetBalanceByDateRange(w http.ResponseWriter, r *http.Re
 func (h *BalanceHandler) GetBalanceByCategory(w http.ResponseWriter, r *http.Request) {
 	userID, err := parseUserID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	categories, err := h.model.GetBalanceByCategory(r.Context(), int32(userID))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(categories)
+	WriteSuccess(w, http.StatusOK, categories)
 }
 
 // RecalculateBalance recalculates the balance from scratch (safety net).
@@ -178,18 +173,17 @@ func (h *BalanceHandler) GetBalanceByCategory(w http.ResponseWriter, r *http.Req
 func (h *BalanceHandler) RecalculateBalance(w http.ResponseWriter, r *http.Request) {
 	userID, err := parseUserID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	balance, err := h.model.RecalculateBalance(r.Context(), int32(userID))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(balance)
+	WriteSuccess(w, http.StatusOK, balance)
 }
 
 // parseUserID extracts and validates user_id from query params
