@@ -4,19 +4,27 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type CreateWalletParams struct {
-	UserID int32  `json:"user_id"`
-	Name   string `json:"name"`
-	Type   string `json:"type"`
+	UserID   int32          `json:"user_id"`
+	Name     string         `json:"name"`
+	Type     string         `json:"type"`
+	Currency string         `json:"currency"`
+	Balance  pgtype.Numeric `json:"balance"`
+	Goals    pgtype.Text    `json:"goals"`
 }
 
 type UpdateWalletParams struct {
-	Name   string `json:"name"`
-	Type   string `json:"type"`
-	ID     int32  `json:"id"`
-	UserID int32  `json:"user_id"`
+	Name     string         `json:"name"`
+	Type     string         `json:"type"`
+	Currency string         `json:"currency"`
+	Balance  pgtype.Numeric `json:"balance"`
+	Goals    pgtype.Text    `json:"goals"`
+	ID       int32          `json:"id"`
+	UserID   int32          `json:"user_id"`
 }
 
 type DeleteWalletParams struct {
@@ -30,12 +38,12 @@ type GetWalletParams struct {
 }
 
 const createWallet = `-- name: CreateWallet :one
-INSERT INTO wallets (user_id, name, type, created_at, updated_at)
-VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-RETURNING id, user_id, name, type, created_at, updated_at`
+INSERT INTO wallets (user_id, name, type, currency, balance, goals, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+RETURNING id, user_id, name, type, created_at, updated_at, currency, balance, goals`
 
 func (q *Queries) CreateWallet(ctx context.Context, arg CreateWalletParams) (Wallet, error) {
-	row := q.db.QueryRow(ctx, createWallet, arg.UserID, arg.Name, arg.Type)
+	row := q.db.QueryRow(ctx, createWallet, arg.UserID, arg.Name, arg.Type, arg.Currency, arg.Balance, arg.Goals)
 	var i Wallet
 	err := row.Scan(
 		&i.ID,
@@ -44,12 +52,15 @@ func (q *Queries) CreateWallet(ctx context.Context, arg CreateWalletParams) (Wal
 		&i.Type,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Currency,
+		&i.Balance,
+		&i.Goals,
 	)
 	return i, err
 }
 
 const getWallet = `-- name: GetWallet :one
-SELECT id, user_id, name, type, created_at, updated_at FROM wallets
+SELECT id, user_id, name, type, created_at, updated_at, currency, balance, goals FROM wallets
 WHERE id = $1 AND user_id = $2`
 
 func (q *Queries) GetWallet(ctx context.Context, arg GetWalletParams) (Wallet, error) {
@@ -62,12 +73,15 @@ func (q *Queries) GetWallet(ctx context.Context, arg GetWalletParams) (Wallet, e
 		&i.Type,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Currency,
+		&i.Balance,
+		&i.Goals,
 	)
 	return i, err
 }
 
 const listWallets = `-- name: ListWallets :many
-SELECT id, user_id, name, type, created_at, updated_at FROM wallets
+SELECT id, user_id, name, type, created_at, updated_at, currency, balance, goals FROM wallets
 WHERE user_id = $1
 ORDER BY name`
 
@@ -87,6 +101,9 @@ func (q *Queries) ListWallets(ctx context.Context, userID int32) ([]Wallet, erro
 			&i.Type,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Currency,
+			&i.Balance,
+			&i.Goals,
 		); err != nil {
 			return nil, err
 		}
@@ -97,12 +114,12 @@ func (q *Queries) ListWallets(ctx context.Context, userID int32) ([]Wallet, erro
 
 const updateWallet = `-- name: UpdateWallet :one
 UPDATE wallets
-SET name = $1, type = $2, updated_at = CURRENT_TIMESTAMP
-WHERE id = $3 AND user_id = $4
-RETURNING id, user_id, name, type, created_at, updated_at`
+SET name = $1, type = $2, currency = $3, balance = $4, goals = $5, updated_at = CURRENT_TIMESTAMP
+WHERE id = $6 AND user_id = $7
+RETURNING id, user_id, name, type, created_at, updated_at, currency, balance, goals`
 
 func (q *Queries) UpdateWallet(ctx context.Context, arg UpdateWalletParams) (Wallet, error) {
-	row := q.db.QueryRow(ctx, updateWallet, arg.Name, arg.Type, arg.ID, arg.UserID)
+	row := q.db.QueryRow(ctx, updateWallet, arg.Name, arg.Type, arg.Currency, arg.Balance, arg.Goals, arg.ID, arg.UserID)
 	var i Wallet
 	err := row.Scan(
 		&i.ID,
@@ -111,6 +128,9 @@ func (q *Queries) UpdateWallet(ctx context.Context, arg UpdateWalletParams) (Wal
 		&i.Type,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Currency,
+		&i.Balance,
+		&i.Goals,
 	)
 	return i, err
 }

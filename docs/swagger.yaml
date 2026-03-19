@@ -83,13 +83,26 @@ definitions:
         type: string
     type: object
   handlers.WalletInput:
+    required:
+    - name
+    - type
+    - currency
+    - balance
     properties:
       name:
         type: string
       type:
         type: string
-      user_id:
-        type: integer
+        example: bank
+      currency:
+        type: string
+        example: IDR
+      balance:
+        type: number
+        example: 0
+      goals:
+        type: string
+        example: Savings
     type: object
 host: localhost:8080
 info:

@@ -1481,15 +1481,31 @@ const docTemplate = `{
         },
         "handlers.WalletInput": {
             "type": "object",
+            "required": [
+                "name",
+                "type",
+                "currency",
+                "balance"
+            ],
             "properties": {
                 "name": {
                     "type": "string"
                 },
                 "type": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "bank"
                 },
-                "user_id": {
-                    "type": "integer"
+                "currency": {
+                    "type": "string",
+                    "example": "IDR"
+                },
+                "balance": {
+                    "type": "number",
+                    "example": 0
+                },
+                "goals": {
+                    "type": "string",
+                    "example": "Savings"
                 }
             }
         }

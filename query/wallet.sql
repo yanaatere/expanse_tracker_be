@@ -1,6 +1,6 @@
 -- name: CreateWallet :one
-INSERT INTO wallets (user_id, name, type, created_at, updated_at)
-VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+INSERT INTO wallets (user_id, name, type, currency, balance, goals, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 RETURNING *;
 
 -- name: GetWallet :one
@@ -14,8 +14,8 @@ ORDER BY name;
 
 -- name: UpdateWallet :one
 UPDATE wallets
-SET name = $1, type = $2, updated_at = CURRENT_TIMESTAMP
-WHERE id = $3 AND user_id = $4
+SET name = $1, type = $2, currency = $3, balance = $4, goals = $5, updated_at = CURRENT_TIMESTAMP
+WHERE id = $6 AND user_id = $7
 RETURNING *;
 
 -- name: DeleteWallet :exec

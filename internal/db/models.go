@@ -47,6 +47,9 @@ type Wallet struct {
 	Type      string           `json:"type"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+	Currency  string           `json:"currency"`
+	Balance   pgtype.Numeric   `json:"balance"`
+	Goals     pgtype.Text      `json:"goals"`
 }
 
 type User struct {

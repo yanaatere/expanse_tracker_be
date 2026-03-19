@@ -49,8 +49,8 @@ type TransactionModelInterface interface {
 type WalletModelInterface interface {
 	GetAll(ctx context.Context, userID int32) ([]models.Wallet, error)
 	Get(ctx context.Context, id, userID int32) (*models.Wallet, error)
-	Create(ctx context.Context, userID int32, name, walletType string) (*models.Wallet, error)
-	Update(ctx context.Context, id, userID int32, name, walletType string) (*models.Wallet, error)
+	Create(ctx context.Context, userID int32, name, walletType, currency string, balance float64, goals *string) (*models.Wallet, error)
+	Update(ctx context.Context, id, userID int32, name, walletType, currency string, balance float64, goals *string) (*models.Wallet, error)
 	Delete(ctx context.Context, id, userID int32) error
 }
 
