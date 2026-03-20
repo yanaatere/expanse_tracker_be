@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -168,6 +169,30 @@ func (h *WalletHandler) UpdateWallet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteSuccess(w, http.StatusOK, wallet)
+}
+
+// @Summary Get wallet names by type
+// @Description Returns predefined wallet names for a given type (bank, e-wallet, cash). Public endpoint.
+// @Tags Wallets
+// @Produce json
+// @Param type query string true "Wallet type: bank, e-wallet, or cash"
+// @Success 200 {array} string
+// @Router /api/wallets/names [get]
+func (h *WalletHandler) GetWalletNames(w http.ResponseWriter, r *http.Request) {
+	walletType := strings.ToLower(r.URL.Query().Get("type"))
+
+	var names []string
+	bankNames := []string{"Mandiri", "BCA", "BNI", "BRI", "CIMB Niaga", "Danamon", "Permata", "BTN", "Other Bank"}
+	switch walletType {
+	case "bank", "credit":
+		names = bankNames
+	case "e-wallet":
+		names = []string{"GoPay", "OVO", "Dana", "ShopeePay", "LinkAja", "Other"}
+	default:
+		names = []string{}
+	}
+
+	WriteSuccess(w, http.StatusOK, names)
 }
 
 // @Summary Delete wallet

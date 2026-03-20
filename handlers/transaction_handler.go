@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/yanaatere/expense_tracking/auth"
 	"github.com/yanaatere/expense_tracking/models"
 )
 
@@ -27,7 +28,6 @@ func NewTransactionHandlerWithModel(model TransactionModelInterface) *Transactio
 }
 
 type TransactionInput struct {
-	UserID          int     `json:"user_id"`
 	Type            string  `json:"type"`
 	Amount          float64 `json:"amount"`
 	Description     string  `json:"description"`
@@ -55,8 +55,9 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if input.UserID == 0 {
-		WriteError(w, http.StatusBadRequest, "User ID is required")
+	userID := auth.GetUserIDFromContext(r.Context())
+	if userID == 0 {
+		WriteError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 	if input.Type == "" {
@@ -102,7 +103,7 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		Valid: true,
 	}
 
-	transaction, err := h.model.Create(r.Context(), int32(input.UserID), input.Type, input.Amount, input.Description, catID, subCatID, walletID, pgDate, input.ReceiptImageUrl)
+	transaction, err := h.model.Create(r.Context(), userID, input.Type, input.Amount, input.Description, catID, subCatID, walletID, pgDate, input.ReceiptImageUrl)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -121,18 +122,13 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 // @Failure 500 {object} MessageResponse
 // @Router /api/transactions [get]
 func (h *TransactionHandler) GetTransactions(w http.ResponseWriter, r *http.Request) {
-	userIDStr := r.URL.Query().Get("user_id")
-	if userIDStr == "" {
-		WriteError(w, http.StatusBadRequest, "User ID is required")
-		return
-	}
-	userID, err := strconv.Atoi(userIDStr)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "Invalid User ID")
+	userID := auth.GetUserIDFromContext(r.Context())
+	if userID == 0 {
+		WriteError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
-	transactions, err := h.model.GetAll(r.Context(), int32(userID))
+	transactions, err := h.model.GetAll(r.Context(), userID)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -159,18 +155,13 @@ func (h *TransactionHandler) GetTransaction(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	userIDStr := r.URL.Query().Get("user_id")
-	if userIDStr == "" {
-		WriteError(w, http.StatusBadRequest, "User ID is required")
-		return
-	}
-	userID, err := strconv.Atoi(userIDStr)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "Invalid User ID")
+	userID := auth.GetUserIDFromContext(r.Context())
+	if userID == 0 {
+		WriteError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
-	transaction, err := h.model.Get(r.Context(), int32(id), int32(userID))
+	transaction, err := h.model.Get(r.Context(), int32(id), userID)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -204,8 +195,9 @@ func (h *TransactionHandler) UpdateTransaction(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if input.UserID == 0 {
-		WriteError(w, http.StatusBadRequest, "User ID is required")
+	userID := auth.GetUserIDFromContext(r.Context())
+	if userID == 0 {
+		WriteError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
@@ -244,7 +236,7 @@ func (h *TransactionHandler) UpdateTransaction(w http.ResponseWriter, r *http.Re
 		Valid: true,
 	}
 
-	transaction, err := h.model.Update(r.Context(), int32(id), int32(input.UserID), input.Type, input.Amount, input.Description, catID, subCatID, walletID, pgDate)
+	transaction, err := h.model.Update(r.Context(), int32(id), userID, input.Type, input.Amount, input.Description, catID, subCatID, walletID, pgDate)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -270,18 +262,13 @@ func (h *TransactionHandler) DeleteTransaction(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	userIDStr := r.URL.Query().Get("user_id")
-	if userIDStr == "" {
-		WriteError(w, http.StatusBadRequest, "User ID is required")
-		return
-	}
-	userID, err := strconv.Atoi(userIDStr)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "Invalid User ID")
+	userID := auth.GetUserIDFromContext(r.Context())
+	if userID == 0 {
+		WriteError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
-	err = h.model.Delete(r.Context(), int32(id), int32(userID))
+	err = h.model.Delete(r.Context(), int32(id), userID)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -300,18 +287,13 @@ func (h *TransactionHandler) DeleteTransaction(w http.ResponseWriter, r *http.Re
 // @Failure 500 {object} MessageResponse
 // @Router /api/dashboard/stats [get]
 func (h *TransactionHandler) GetDashboardStats(w http.ResponseWriter, r *http.Request) {
-	userIDStr := r.URL.Query().Get("user_id")
-	if userIDStr == "" {
-		WriteError(w, http.StatusBadRequest, "User ID is required")
-		return
-	}
-	userID, err := strconv.Atoi(userIDStr)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "Invalid User ID")
+	userID := auth.GetUserIDFromContext(r.Context())
+	if userID == 0 {
+		WriteError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
-	stats, err := h.model.GetDashboardStats(r.Context(), int32(userID))
+	stats, err := h.model.GetDashboardStats(r.Context(), userID)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, err.Error())
 		return

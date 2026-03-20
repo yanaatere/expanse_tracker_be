@@ -20,6 +20,7 @@ func NewWalletController(pool *pgxpool.Pool) *WalletController {
 }
 
 func (c *WalletController) RegisterRoutes(router *mux.Router) {
+	router.HandleFunc("/api/wallets/names", c.handler.GetWalletNames).Methods("GET")
 	router.Handle("/api/wallets", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetWallets))).Methods("GET")
 	router.Handle("/api/wallets/{id:[0-9]+}", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetWallet))).Methods("GET")
 	router.Handle("/api/wallets", auth.JWTMiddleware(http.HandlerFunc(c.handler.CreateWallet))).Methods("POST")
