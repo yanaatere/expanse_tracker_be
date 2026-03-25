@@ -18,19 +18,36 @@ func NewCategoryModel(d db.DBTX) *CategoryModel {
 }
 
 func (m *CategoryModel) GetAll(ctx context.Context) ([]Category, error) {
-	return m.q.ListCategories(ctx)
-}
-
-func (m *CategoryModel) Get(ctx context.Context, id int32) (*Category, error) {
-	c, err := m.q.GetCategory(ctx, id)
+	rows, err := m.q.ListCategories(ctx)
 	if err != nil {
 		return nil, err
 	}
+	out := make([]Category, len(rows))
+	for i, r := range rows {
+		out[i] = db.Category{ID: r.ID, Name: r.Name, Description: r.Description, ParentID: r.ParentID, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt}
+	}
+	return out, nil
+}
+
+func (m *CategoryModel) Get(ctx context.Context, id int32) (*Category, error) {
+	r, err := m.q.GetCategory(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	c := db.Category{ID: r.ID, Name: r.Name, Description: r.Description, ParentID: r.ParentID, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt}
 	return &c, nil
 }
 
 func (m *CategoryModel) GetSubCategories(ctx context.Context, parentID int32) ([]Category, error) {
-	return m.q.ListSubCategories(ctx, parentID)
+	rows, err := m.q.ListSubCategories(ctx, pgtype.Int4{Int32: parentID, Valid: true})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]Category, len(rows))
+	for i, r := range rows {
+		out[i] = db.Category{ID: r.ID, Name: r.Name, Description: r.Description, ParentID: r.ParentID, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt}
+	}
+	return out, nil
 }
 
 func (m *CategoryModel) Create(ctx context.Context, name, description string, parentID *int32) (*Category, error) {
@@ -38,32 +55,28 @@ func (m *CategoryModel) Create(ctx context.Context, name, description string, pa
 	if parentID != nil {
 		pid = pgtype.Int4{Int32: *parentID, Valid: true}
 	}
-	c, err := m.q.CreateCategory(ctx, db.CreateCategoryParams{
-		Name: name,
-		Description: pgtype.Text{
-			String: description,
-			Valid:  true,
-		},
-		ParentID: pid,
+	r, err := m.q.CreateCategory(ctx, db.CreateCategoryParams{
+		Name:        name,
+		Description: pgtype.Text{String: description, Valid: true},
+		ParentID:    pid,
 	})
 	if err != nil {
 		return nil, err
 	}
+	c := db.Category{ID: r.ID, Name: r.Name, Description: r.Description, ParentID: r.ParentID, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt}
 	return &c, nil
 }
 
 func (m *CategoryModel) Update(ctx context.Context, id int32, name, description string) (*Category, error) {
-	c, err := m.q.UpdateCategory(ctx, db.UpdateCategoryParams{
-		ID:   id,
-		Name: name,
-		Description: pgtype.Text{
-			String: description,
-			Valid:  true,
-		},
+	r, err := m.q.UpdateCategory(ctx, db.UpdateCategoryParams{
+		ID:          id,
+		Name:        name,
+		Description: pgtype.Text{String: description, Valid: true},
 	})
 	if err != nil {
 		return nil, err
 	}
+	c := db.Category{ID: r.ID, Name: r.Name, Description: r.Description, ParentID: r.ParentID, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt}
 	return &c, nil
 }
 

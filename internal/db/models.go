@@ -20,9 +20,9 @@ type Category struct {
 	ID          int32            `json:"id"`
 	Name        string           `json:"name"`
 	Description pgtype.Text      `json:"description"`
-	ParentID    pgtype.Int4      `json:"parent_id"`
 	CreatedAt   pgtype.Timestamp `json:"created_at"`
 	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+	ParentID    pgtype.Int4      `json:"parent_id"`
 }
 
 type Transaction struct {
@@ -32,12 +32,23 @@ type Transaction struct {
 	Amount          pgtype.Numeric   `json:"amount"`
 	Description     pgtype.Text      `json:"description"`
 	CategoryID      pgtype.Int4      `json:"category_id"`
-	SubCategoryID   pgtype.Int4      `json:"sub_category_id"`
-	WalletID        pgtype.Int4      `json:"wallet_id"`
-	ReceiptImageUrl pgtype.Text      `json:"receipt_image_url"`
 	TransactionDate pgtype.Date      `json:"transaction_date"`
 	CreatedAt       pgtype.Timestamp `json:"created_at"`
 	UpdatedAt       pgtype.Timestamp `json:"updated_at"`
+	WalletID        pgtype.Int4      `json:"wallet_id"`
+	SubCategoryID   pgtype.Int4      `json:"sub_category_id"`
+	ReceiptImageUrl pgtype.Text      `json:"receipt_image_url"`
+}
+
+type User struct {
+	ID                   int32            `json:"id"`
+	Username             string           `json:"username"`
+	Email                string           `json:"email"`
+	Password             string           `json:"password"`
+	PasswordResetToken   pgtype.Text      `json:"password_reset_token"`
+	PasswordResetExpires pgtype.Timestamp `json:"password_reset_expires"`
+	CreatedAt            pgtype.Timestamp `json:"created_at"`
+	UpdatedAt            pgtype.Timestamp `json:"updated_at"`
 }
 
 type Wallet struct {
@@ -50,15 +61,4 @@ type Wallet struct {
 	Currency  string           `json:"currency"`
 	Balance   pgtype.Numeric   `json:"balance"`
 	Goals     pgtype.Text      `json:"goals"`
-}
-
-type User struct {
-	ID                   int32            `json:"id"`
-	Username             string           `json:"username"`
-	Email                string           `json:"email"`
-	Password             string           `json:"password"`
-	PasswordResetToken   pgtype.Text      `json:"password_reset_token"`
-	PasswordResetExpires pgtype.Timestamp `json:"password_reset_expires"`
-	CreatedAt            pgtype.Timestamp `json:"created_at"`
-	UpdatedAt            pgtype.Timestamp `json:"updated_at"`
 }

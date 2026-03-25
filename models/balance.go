@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -86,7 +87,9 @@ func (m *BalanceModel) GetUserBalance(ctx context.Context, userID int32) (*UserB
 // Positive delta for income, negative delta for expense.
 func (m *BalanceModel) AdjustBalance(ctx context.Context, userID int32, delta float64) error {
 	deltaNumeric := pgtype.Numeric{}
-	deltaNumeric.Scan(delta)
+	if err := deltaNumeric.Scan(strconv.FormatFloat(delta, 'f', -1, 64)); err != nil {
+		return fmt.Errorf("invalid delta: %w", err)
+	}
 
 	_, err := m.q.AdjustBalance(ctx, db.AdjustBalanceParams{
 		UserID:       userID,
@@ -100,7 +103,9 @@ func (m *BalanceModel) AdjustBalanceWithTx(ctx context.Context, tx pgx.Tx, userI
 	qtx := m.q.WithTx(tx)
 
 	deltaNumeric := pgtype.Numeric{}
-	deltaNumeric.Scan(delta)
+	if err := deltaNumeric.Scan(strconv.FormatFloat(delta, 'f', -1, 64)); err != nil {
+		return fmt.Errorf("invalid delta: %w", err)
+	}
 
 	_, err := qtx.AdjustBalance(ctx, db.AdjustBalanceParams{
 		UserID:       userID,

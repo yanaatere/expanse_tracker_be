@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -15,6 +16,7 @@ type TransactionModel struct {
 	q            *db.Queries
 	pool         *pgxpool.Pool
 	balanceModel *BalanceModel
+	walletModel  *WalletModel
 }
 
 func NewTransactionModel(pool *pgxpool.Pool) *TransactionModel {
@@ -22,6 +24,7 @@ func NewTransactionModel(pool *pgxpool.Pool) *TransactionModel {
 		q:            db.New(pool),
 		pool:         pool,
 		balanceModel: NewBalanceModel(pool),
+		walletModel:  NewWalletModel(pool),
 	}
 }
 
@@ -58,7 +61,9 @@ func (m *TransactionModel) Create(ctx context.Context, userID int32, tType strin
 	}
 
 	amountNumeric := pgtype.Numeric{}
-	amountNumeric.Scan(amount)
+	if err := amountNumeric.Scan(strconv.FormatFloat(amount, 'f', -1, 64)); err != nil {
+		return nil, fmt.Errorf("invalid amount: %w", err)
+	}
 
 	imgUrl := pgtype.Text{Valid: false}
 	if receiptImageUrl != "" {
@@ -80,17 +85,25 @@ func (m *TransactionModel) Create(ctx context.Context, userID int32, tType strin
 		return nil, fmt.Errorf("failed to create transaction: %w", err)
 	}
 
-	// Adjust balance in the same DB transaction
+	// Adjust global balance
 	delta := balanceDelta(tType, amount)
 	if err := m.balanceModel.AdjustBalanceWithTx(ctx, tx, userID, delta); err != nil {
 		return nil, fmt.Errorf("failed to adjust balance: %w", err)
+	}
+
+	// Adjust wallet balance if a wallet is linked
+	if walletID != nil {
+		if err := m.walletModel.AdjustWalletBalanceWithTx(ctx, tx, *walletID, userID, delta); err != nil {
+			return nil, fmt.Errorf("failed to adjust wallet balance: %w", err)
+		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("failed to commit: %w", err)
 	}
 
-	return &t, nil
+	result := db.Transaction{ID: t.ID, UserID: t.UserID, Type: t.Type, Amount: t.Amount, Description: t.Description, CategoryID: t.CategoryID, SubCategoryID: t.SubCategoryID, WalletID: t.WalletID, ReceiptImageUrl: t.ReceiptImageUrl, TransactionDate: t.TransactionDate, CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt}
+	return &result, nil
 }
 
 func (m *TransactionModel) GetAll(ctx context.Context, userID int32) ([]db.ListTransactionsRow, error) {
@@ -146,7 +159,9 @@ func (m *TransactionModel) Update(ctx context.Context, id int32, userID int32, t
 	}
 
 	amountNumeric := pgtype.Numeric{}
-	amountNumeric.Scan(amount)
+	if err := amountNumeric.Scan(strconv.FormatFloat(amount, 'f', -1, 64)); err != nil {
+		return nil, fmt.Errorf("invalid amount: %w", err)
+	}
 
 	t, err := qtx.UpdateTransaction(ctx, db.UpdateTransactionParams{
 		ID:              id,
@@ -163,18 +178,32 @@ func (m *TransactionModel) Update(ctx context.Context, id int32, userID int32, t
 		return nil, fmt.Errorf("failed to update transaction: %w", err)
 	}
 
-	// Adjust balance: reverse old effect, apply new effect
+	// Adjust global balance: reverse old effect, apply new effect
 	newDelta := balanceDelta(tType, amount)
 	netDelta := newDelta - oldDelta
 	if err := m.balanceModel.AdjustBalanceWithTx(ctx, tx, userID, netDelta); err != nil {
 		return nil, fmt.Errorf("failed to adjust balance: %w", err)
 	}
 
+	// Adjust wallet balances: reverse old wallet, apply new wallet
+	if oldTx.WalletID.Valid {
+		oldWalletID := oldTx.WalletID.Int32
+		if err := m.walletModel.AdjustWalletBalanceWithTx(ctx, tx, oldWalletID, userID, -oldDelta); err != nil {
+			return nil, fmt.Errorf("failed to reverse old wallet balance: %w", err)
+		}
+	}
+	if walletID != nil {
+		if err := m.walletModel.AdjustWalletBalanceWithTx(ctx, tx, *walletID, userID, newDelta); err != nil {
+			return nil, fmt.Errorf("failed to adjust new wallet balance: %w", err)
+		}
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("failed to commit: %w", err)
 	}
 
-	return &t, nil
+	result := db.Transaction{ID: t.ID, UserID: t.UserID, Type: t.Type, Amount: t.Amount, Description: t.Description, CategoryID: t.CategoryID, SubCategoryID: t.SubCategoryID, WalletID: t.WalletID, TransactionDate: t.TransactionDate, CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt}
+	return &result, nil
 }
 
 func (m *TransactionModel) Delete(ctx context.Context, id int32, userID int32) error {
@@ -205,12 +234,19 @@ func (m *TransactionModel) Delete(ctx context.Context, id int32, userID int32) e
 		return fmt.Errorf("failed to delete transaction: %w", err)
 	}
 
-	// Reverse the balance effect
+	// Reverse the global balance effect
 	oldAmountVal, _ := oldTx.Amount.Float64Value()
 	oldAmount := oldAmountVal.Float64
 	reverseDelta := -balanceDelta(oldTx.Type, oldAmount)
 	if err := m.balanceModel.AdjustBalanceWithTx(ctx, tx, userID, reverseDelta); err != nil {
 		return fmt.Errorf("failed to adjust balance: %w", err)
+	}
+
+	// Reverse the wallet balance effect if a wallet was linked
+	if oldTx.WalletID.Valid {
+		if err := m.walletModel.AdjustWalletBalanceWithTx(ctx, tx, oldTx.WalletID.Int32, userID, reverseDelta); err != nil {
+			return fmt.Errorf("failed to reverse wallet balance: %w", err)
+		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {

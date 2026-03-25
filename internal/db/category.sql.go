@@ -23,9 +23,18 @@ type CreateCategoryParams struct {
 	ParentID    pgtype.Int4 `json:"parent_id"`
 }
 
-func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error) {
+type CreateCategoryRow struct {
+	ID          int32            `json:"id"`
+	Name        string           `json:"name"`
+	Description pgtype.Text      `json:"description"`
+	ParentID    pgtype.Int4      `json:"parent_id"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+}
+
+func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) (CreateCategoryRow, error) {
 	row := q.db.QueryRow(ctx, createCategory, arg.Name, arg.Description, arg.ParentID)
-	var i Category
+	var i CreateCategoryRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -53,9 +62,18 @@ FROM categories
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetCategory(ctx context.Context, id int32) (Category, error) {
+type GetCategoryRow struct {
+	ID          int32            `json:"id"`
+	Name        string           `json:"name"`
+	Description pgtype.Text      `json:"description"`
+	ParentID    pgtype.Int4      `json:"parent_id"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+}
+
+func (q *Queries) GetCategory(ctx context.Context, id int32) (GetCategoryRow, error) {
 	row := q.db.QueryRow(ctx, getCategory, id)
-	var i Category
+	var i GetCategoryRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -74,15 +92,24 @@ WHERE parent_id IS NULL
 ORDER BY name
 `
 
-func (q *Queries) ListCategories(ctx context.Context) ([]Category, error) {
+type ListCategoriesRow struct {
+	ID          int32            `json:"id"`
+	Name        string           `json:"name"`
+	Description pgtype.Text      `json:"description"`
+	ParentID    pgtype.Int4      `json:"parent_id"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+}
+
+func (q *Queries) ListCategories(ctx context.Context) ([]ListCategoriesRow, error) {
 	rows, err := q.db.Query(ctx, listCategories)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Category
+	var items []ListCategoriesRow
 	for rows.Next() {
-		var i Category
+		var i ListCategoriesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -95,7 +122,10 @@ func (q *Queries) ListCategories(ctx context.Context) ([]Category, error) {
 		}
 		items = append(items, i)
 	}
-	return items, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listSubCategories = `-- name: ListSubCategories :many
@@ -105,15 +135,24 @@ WHERE parent_id = $1
 ORDER BY name
 `
 
-func (q *Queries) ListSubCategories(ctx context.Context, parentID int32) ([]Category, error) {
+type ListSubCategoriesRow struct {
+	ID          int32            `json:"id"`
+	Name        string           `json:"name"`
+	Description pgtype.Text      `json:"description"`
+	ParentID    pgtype.Int4      `json:"parent_id"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+}
+
+func (q *Queries) ListSubCategories(ctx context.Context, parentID pgtype.Int4) ([]ListSubCategoriesRow, error) {
 	rows, err := q.db.Query(ctx, listSubCategories, parentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Category
+	var items []ListSubCategoriesRow
 	for rows.Next() {
-		var i Category
+		var i ListSubCategoriesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -126,7 +165,10 @@ func (q *Queries) ListSubCategories(ctx context.Context, parentID int32) ([]Cate
 		}
 		items = append(items, i)
 	}
-	return items, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateCategory = `-- name: UpdateCategory :one
@@ -142,9 +184,18 @@ type UpdateCategoryParams struct {
 	Description pgtype.Text `json:"description"`
 }
 
-func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error) {
+type UpdateCategoryRow struct {
+	ID          int32            `json:"id"`
+	Name        string           `json:"name"`
+	Description pgtype.Text      `json:"description"`
+	ParentID    pgtype.Int4      `json:"parent_id"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+}
+
+func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (UpdateCategoryRow, error) {
 	row := q.db.QueryRow(ctx, updateCategory, arg.ID, arg.Name, arg.Description)
-	var i Category
+	var i UpdateCategoryRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,

@@ -20,3 +20,9 @@ RETURNING *;
 
 -- name: DeleteWallet :exec
 DELETE FROM wallets WHERE id = $1 AND user_id = $2;
+
+-- name: AdjustWalletBalance :one
+UPDATE wallets
+SET balance = balance + $1, updated_at = CURRENT_TIMESTAMP
+WHERE id = $2 AND user_id = $3
+RETURNING *;

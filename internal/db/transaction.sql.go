@@ -29,7 +29,22 @@ type CreateTransactionParams struct {
 	ReceiptImageUrl pgtype.Text    `json:"receipt_image_url"`
 }
 
-func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error) {
+type CreateTransactionRow struct {
+	ID              int32            `json:"id"`
+	UserID          int32            `json:"user_id"`
+	Type            string           `json:"type"`
+	Amount          pgtype.Numeric   `json:"amount"`
+	Description     pgtype.Text      `json:"description"`
+	CategoryID      pgtype.Int4      `json:"category_id"`
+	SubCategoryID   pgtype.Int4      `json:"sub_category_id"`
+	WalletID        pgtype.Int4      `json:"wallet_id"`
+	ReceiptImageUrl pgtype.Text      `json:"receipt_image_url"`
+	TransactionDate pgtype.Date      `json:"transaction_date"`
+	CreatedAt       pgtype.Timestamp `json:"created_at"`
+	UpdatedAt       pgtype.Timestamp `json:"updated_at"`
+}
+
+func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionParams) (CreateTransactionRow, error) {
 	row := q.db.QueryRow(ctx, createTransaction,
 		arg.UserID,
 		arg.Type,
@@ -41,7 +56,7 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		arg.TransactionDate,
 		arg.ReceiptImageUrl,
 	)
-	var i Transaction
+	var i CreateTransactionRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -99,6 +114,7 @@ SELECT t.id, t.user_id, t.type, t.amount, t.description,
        t.category_id, c.name as category_name,
        t.sub_category_id, sc.name as sub_category_name,
        t.wallet_id, w.name as wallet_name,
+       t.receipt_image_url,
        t.transaction_date, t.created_at, t.updated_at
 FROM transactions t
 LEFT JOIN categories c ON t.category_id = c.id
@@ -158,6 +174,7 @@ SELECT t.id, t.user_id, t.type, t.amount, t.description,
        t.category_id, c.name as category_name,
        t.sub_category_id, sc.name as sub_category_name,
        t.wallet_id, w.name as wallet_name,
+       t.receipt_image_url,
        t.transaction_date, t.created_at, t.updated_at
 FROM transactions t
 LEFT JOIN categories c ON t.category_id = c.id
@@ -215,7 +232,10 @@ func (q *Queries) ListTransactions(ctx context.Context, userID int32) ([]ListTra
 		}
 		items = append(items, i)
 	}
-	return items, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateTransaction = `-- name: UpdateTransaction :one
@@ -238,7 +258,22 @@ type UpdateTransactionParams struct {
 	TransactionDate pgtype.Date    `json:"transaction_date"`
 }
 
-func (q *Queries) UpdateTransaction(ctx context.Context, arg UpdateTransactionParams) (Transaction, error) {
+type UpdateTransactionRow struct {
+	ID              int32            `json:"id"`
+	UserID          int32            `json:"user_id"`
+	Type            string           `json:"type"`
+	Amount          pgtype.Numeric   `json:"amount"`
+	Description     pgtype.Text      `json:"description"`
+	CategoryID      pgtype.Int4      `json:"category_id"`
+	SubCategoryID   pgtype.Int4      `json:"sub_category_id"`
+	WalletID        pgtype.Int4      `json:"wallet_id"`
+	ReceiptImageUrl pgtype.Text      `json:"receipt_image_url"`
+	TransactionDate pgtype.Date      `json:"transaction_date"`
+	CreatedAt       pgtype.Timestamp `json:"created_at"`
+	UpdatedAt       pgtype.Timestamp `json:"updated_at"`
+}
+
+func (q *Queries) UpdateTransaction(ctx context.Context, arg UpdateTransactionParams) (UpdateTransactionRow, error) {
 	row := q.db.QueryRow(ctx, updateTransaction,
 		arg.ID,
 		arg.UserID,
@@ -250,7 +285,7 @@ func (q *Queries) UpdateTransaction(ctx context.Context, arg UpdateTransactionPa
 		arg.WalletID,
 		arg.TransactionDate,
 	)
-	var i Transaction
+	var i UpdateTransactionRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
