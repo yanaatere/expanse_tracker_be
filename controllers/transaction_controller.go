@@ -27,6 +27,9 @@ func (c *TransactionController) RegisterRoutes(router *mux.Router) {
 	router.Handle("/api/transactions/{id:[0-9]+}", auth.JWTMiddleware(http.HandlerFunc(c.handler.UpdateTransaction))).Methods("PUT")
 	router.Handle("/api/transactions/{id:[0-9]+}", auth.JWTMiddleware(http.HandlerFunc(c.handler.DeleteTransaction))).Methods("DELETE")
 
+	// Wallet transactions (filtered by wallet, optional type filter)
+	router.Handle("/api/wallets/{id:[0-9]+}/transactions", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetTransactionsByWallet))).Methods("GET")
+
 	// Dashboard Stats - also protected
 	router.Handle("/api/dashboard/stats", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetDashboardStats))).Methods("GET")
 }

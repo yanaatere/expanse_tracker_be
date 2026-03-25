@@ -43,6 +43,7 @@ func main() {
 	transactionController := controllers.NewTransactionController(cfg.DB)
 	balanceController := controllers.NewBalanceController(cfg.DB)
 	walletController := controllers.NewWalletController(cfg.DB) // cfg.DB is *pgxpool.Pool
+	uploadController := controllers.NewUploadController()
 
 	// Register routes
 	userController.RegisterRoutes(r)
@@ -50,6 +51,10 @@ func main() {
 	transactionController.RegisterRoutes(r)
 	balanceController.RegisterRoutes(r)
 	walletController.RegisterRoutes(r)
+	uploadController.RegisterRoutes(r)
+
+	// Serve uploaded files (receipts, etc.)
+	r.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 
 	// Swagger route (enabled only outside production)
 	if os.Getenv("ENVIRONMENT") != "production" {

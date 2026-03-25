@@ -277,6 +277,41 @@ func (h *TransactionHandler) DeleteTransaction(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary Get transactions by wallet
+// @Description Get all transactions for a specific wallet, with optional type filter (protected)
+// @Tags Transactions
+// @Produce json
+// @Param id path int true "Wallet ID"
+// @Param type query string false "Filter by type: income or expense"
+// @Success 200 {array} object
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/wallets/{id}/transactions [get]
+func (h *TransactionHandler) GetTransactionsByWallet(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	walletID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "Invalid wallet ID")
+		return
+	}
+
+	userID := auth.GetUserIDFromContext(r.Context())
+	if userID == 0 {
+		WriteError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	typeFilter := r.URL.Query().Get("type")
+
+	transactions, err := h.model.GetByWallet(r.Context(), userID, int32(walletID), typeFilter)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	WriteSuccess(w, http.StatusOK, transactions)
+}
+
 // @Summary Get dashboard stats
 // @Description Get transaction dashboard stats for a user (protected)
 // @Tags Transactions

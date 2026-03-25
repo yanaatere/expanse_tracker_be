@@ -220,6 +220,57 @@ func (m *TransactionModel) Delete(ctx context.Context, id int32, userID int32) e
 	return nil
 }
 
+// WalletTransactionRow is the row type returned by GetByWallet.
+type WalletTransactionRow struct {
+	ID              int32   `json:"id"`
+	Type            string  `json:"type"`
+	Amount          float64 `json:"amount"`
+	Description     string  `json:"description"`
+	CategoryName    string  `json:"category_name"`
+	TransactionDate string  `json:"transaction_date"`
+	ReceiptImageUrl string  `json:"receipt_image_url,omitempty"`
+}
+
+// GetByWallet returns all transactions for a specific wallet, optionally filtered by type.
+// typeFilter can be "income", "expense", or "" for all.
+func (m *TransactionModel) GetByWallet(ctx context.Context, userID, walletID int32, typeFilter string) ([]WalletTransactionRow, error) {
+	query := `
+		SELECT t.id, t.type, t.amount::float8,
+		       COALESCE(t.description, ''),
+		       COALESCE(c.name, ''),
+		       t.transaction_date::text,
+		       COALESCE(t.receipt_image_url, '')
+		FROM transactions t
+		LEFT JOIN categories c ON t.category_id = c.id
+		WHERE t.user_id = $1 AND t.wallet_id = $2`
+
+	args := []interface{}{userID, walletID}
+	if typeFilter == "income" || typeFilter == "expense" {
+		query += ` AND t.type = $3`
+		args = append(args, typeFilter)
+	}
+	query += ` ORDER BY t.transaction_date DESC, t.created_at DESC`
+
+	rows, err := m.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query wallet transactions: %w", err)
+	}
+	defer rows.Close()
+
+	var result []WalletTransactionRow
+	for rows.Next() {
+		var r WalletTransactionRow
+		if err := rows.Scan(&r.ID, &r.Type, &r.Amount, &r.Description, &r.CategoryName, &r.TransactionDate, &r.ReceiptImageUrl); err != nil {
+			return nil, fmt.Errorf("failed to scan wallet transaction: %w", err)
+		}
+		result = append(result, r)
+	}
+	if result == nil {
+		result = []WalletTransactionRow{}
+	}
+	return result, rows.Err()
+}
+
 // Stats result - kept for backward compatibility with dashboard
 type DashboardStats struct {
 	TotalIncome  float64 `json:"total_income"`

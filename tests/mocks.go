@@ -107,6 +107,7 @@ type MockTransactionModel struct {
 	UpdateFn            func(ctx context.Context, id int32, userID int32, tType string, amount float64, description string, categoryID *int32, subCategoryID *int32, walletID *int32, date pgtype.Date) (*models.Transaction, error)
 	DeleteFn            func(ctx context.Context, id int32, userID int32) error
 	GetDashboardStatsFn func(ctx context.Context, userID int32) (*models.DashboardStats, error)
+	GetByWalletFn       func(ctx context.Context, userID, walletID int32, typeFilter string) ([]models.WalletTransactionRow, error)
 }
 
 func (m *MockTransactionModel) Create(ctx context.Context, userID int32, tType string, amount float64, description string, categoryID *int32, subCategoryID *int32, walletID *int32, date pgtype.Date, receiptImageUrl string) (*models.Transaction, error) {
@@ -126,6 +127,9 @@ func (m *MockTransactionModel) Delete(ctx context.Context, id int32, userID int3
 }
 func (m *MockTransactionModel) GetDashboardStats(ctx context.Context, userID int32) (*models.DashboardStats, error) {
 	return m.GetDashboardStatsFn(ctx, userID)
+}
+func (m *MockTransactionModel) GetByWallet(ctx context.Context, userID, walletID int32, typeFilter string) ([]models.WalletTransactionRow, error) {
+	return m.GetByWalletFn(ctx, userID, walletID, typeFilter)
 }
 
 // MockWalletModel is a configurable test double for WalletModelInterface.

@@ -43,6 +43,7 @@ type TransactionModelInterface interface {
 	Update(ctx context.Context, id int32, userID int32, tType string, amount float64, description string, categoryID *int32, subCategoryID *int32, walletID *int32, date pgtype.Date) (*models.Transaction, error)
 	Delete(ctx context.Context, id int32, userID int32) error
 	GetDashboardStats(ctx context.Context, userID int32) (*models.DashboardStats, error)
+	GetByWallet(ctx context.Context, userID, walletID int32, typeFilter string) ([]models.WalletTransactionRow, error)
 }
 
 // WalletModelInterface abstracts wallet database operations for testability.
