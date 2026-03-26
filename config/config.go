@@ -9,10 +9,12 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 )
 
 type Config struct {
-	DB *pgxpool.Pool
+	DB    *pgxpool.Pool
+	Redis *redis.Client
 }
 
 func LoadConfig() (*Config, error) {
@@ -69,8 +71,20 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
+	// Redis connection
+	redisURL := getEnv("REDIS_URL", "redis://localhost:6379/0")
+	redisOpts, err := redis.ParseURL(redisURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid REDIS_URL: %w", err)
+	}
+	redisClient := redis.NewClient(redisOpts)
+	if err := redisClient.Ping(context.Background()).Err(); err != nil {
+		log.Printf("Warning: Redis unavailable (%v) — bot linking will not work", err)
+	}
+
 	return &Config{
-		DB: db,
+		DB:    db,
+		Redis: redisClient,
 	}, nil
 }
 

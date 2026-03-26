@@ -44,6 +44,7 @@ func main() {
 	balanceController := controllers.NewBalanceController(cfg.DB)
 	walletController := controllers.NewWalletController(cfg.DB) // cfg.DB is *pgxpool.Pool
 	uploadController := controllers.NewUploadController()
+	botController := controllers.NewBotController(cfg.Redis)
 
 	// Register routes
 	userController.RegisterRoutes(r)
@@ -52,6 +53,7 @@ func main() {
 	balanceController.RegisterRoutes(r)
 	walletController.RegisterRoutes(r)
 	uploadController.RegisterRoutes(r)
+	botController.RegisterRoutes(r)
 
 	// Serve uploaded files (receipts, etc.)
 	r.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
