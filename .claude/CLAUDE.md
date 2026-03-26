@@ -22,6 +22,9 @@ go run cmd/migrate/main.go        # Runs all .sql files in migrations/ in order
 # Regenerate SQLC code (after modifying query/*.sql)
 sqlc generate
 
+# Regenerate Swagger docs (after modifying handler annotations)
+swag init
+
 # Docker
 docker-compose up --build         # Runs on port 8081
 ```
@@ -38,8 +41,9 @@ HTTP → Middleware → Controllers (route registration) → Handlers (HTTP logi
 - `handlers/`: HTTP request/response logic. All handlers use `WriteSuccess()` / `WriteError()` from `handlers/response.go`. Interfaces for all handler dependencies are defined in `handlers/interfaces.go`.
 - `models/`: Business logic that implements the interfaces in `handlers/interfaces.go`. Calls SQLC-generated code.
 - `internal/db/`: Auto-generated SQLC code — **do not edit manually**. Regenerate with `sqlc generate` after changing `query/*.sql`.
-- `auth/`: JWT generation/validation (`jwt.go`), bcrypt password hashing (`password.go`), JWT middleware (`middleware.go`).
-- `middleware/`: CORS and request logging (applied globally in `main.go`).
+- `auth/`: JWT generation/validation (`jwt.go`), bcrypt password hashing (`password.go`), JWT middleware (`middleware.go`), password reset token generation (`email.go` — email sending is a stub, integrate a real provider for production).
+- `middleware/`: CORS and request logging (applied globally in `main.go`; logging wraps first, then CORS).
+- `logger/`: Structured logger used throughout the app instead of `log` directly.
 
 **Dependency injection flow:** `main.go` creates a `pgxpool.Pool` via `config.LoadConfig()`, passes it to each controller, which instantiates models and handlers.
 
@@ -56,12 +60,15 @@ HTTP → Middleware → Controllers (route registration) → Handlers (HTTP logi
 { "msgId": "<uuid>", "status": "success|error", "data": {} }
 ```
 
-**Swagger docs** are served at `/swagger/` and are generated in the `docs/` directory. Not served in production.
+**Swagger docs** are served at `/swagger/` and are generated in the `docs/` directory. Only enabled when `ENVIRONMENT` != `production`.
+
+**File uploads:** Receipt images are stored under `uploads/` and served statically at `/uploads/`. The `upload_controller.go` handles multipart form uploads.
 
 ## Configuration
 
 Environment variables loaded from `.env` (or system env):
 - `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`
 - `PORT` — HTTP server port (default `8080`)
+- `ENVIRONMENT` — set to `production` to disable Swagger UI
 
 SSL is enabled automatically when `DB_HOST` is not `localhost`. IPv4 is forced when running in Docker.

@@ -15,7 +15,7 @@ const adjustWalletBalance = `-- name: AdjustWalletBalance :one
 UPDATE wallets
 SET balance = balance + $1, updated_at = CURRENT_TIMESTAMP
 WHERE id = $2 AND user_id = $3
-RETURNING id, user_id, name, type, created_at, updated_at, currency, balance, goals
+RETURNING id, user_id, name, type, created_at, updated_at, currency, balance, goals, backdrop_image
 `
 
 type AdjustWalletBalanceParams struct {
@@ -37,23 +37,25 @@ func (q *Queries) AdjustWalletBalance(ctx context.Context, arg AdjustWalletBalan
 		&i.Currency,
 		&i.Balance,
 		&i.Goals,
+		&i.BackdropImage,
 	)
 	return i, err
 }
 
 const createWallet = `-- name: CreateWallet :one
-INSERT INTO wallets (user_id, name, type, currency, balance, goals, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-RETURNING id, user_id, name, type, created_at, updated_at, currency, balance, goals
+INSERT INTO wallets (user_id, name, type, currency, balance, goals, backdrop_image, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+RETURNING id, user_id, name, type, created_at, updated_at, currency, balance, goals, backdrop_image
 `
 
 type CreateWalletParams struct {
-	UserID   int32          `json:"user_id"`
-	Name     string         `json:"name"`
-	Type     string         `json:"type"`
-	Currency string         `json:"currency"`
-	Balance  pgtype.Numeric `json:"balance"`
-	Goals    pgtype.Text    `json:"goals"`
+	UserID        int32          `json:"user_id"`
+	Name          string         `json:"name"`
+	Type          string         `json:"type"`
+	Currency      string         `json:"currency"`
+	Balance       pgtype.Numeric `json:"balance"`
+	Goals         pgtype.Text    `json:"goals"`
+	BackdropImage pgtype.Text    `json:"backdrop_image"`
 }
 
 func (q *Queries) CreateWallet(ctx context.Context, arg CreateWalletParams) (Wallet, error) {
@@ -64,6 +66,7 @@ func (q *Queries) CreateWallet(ctx context.Context, arg CreateWalletParams) (Wal
 		arg.Currency,
 		arg.Balance,
 		arg.Goals,
+		arg.BackdropImage,
 	)
 	var i Wallet
 	err := row.Scan(
@@ -76,6 +79,7 @@ func (q *Queries) CreateWallet(ctx context.Context, arg CreateWalletParams) (Wal
 		&i.Currency,
 		&i.Balance,
 		&i.Goals,
+		&i.BackdropImage,
 	)
 	return i, err
 }
@@ -95,7 +99,7 @@ func (q *Queries) DeleteWallet(ctx context.Context, arg DeleteWalletParams) erro
 }
 
 const getWallet = `-- name: GetWallet :one
-SELECT id, user_id, name, type, created_at, updated_at, currency, balance, goals FROM wallets
+SELECT id, user_id, name, type, created_at, updated_at, currency, balance, goals, backdrop_image FROM wallets
 WHERE id = $1 AND user_id = $2
 `
 
@@ -117,12 +121,13 @@ func (q *Queries) GetWallet(ctx context.Context, arg GetWalletParams) (Wallet, e
 		&i.Currency,
 		&i.Balance,
 		&i.Goals,
+		&i.BackdropImage,
 	)
 	return i, err
 }
 
 const listWallets = `-- name: ListWallets :many
-SELECT id, user_id, name, type, created_at, updated_at, currency, balance, goals FROM wallets
+SELECT id, user_id, name, type, created_at, updated_at, currency, balance, goals, backdrop_image FROM wallets
 WHERE user_id = $1
 ORDER BY name
 `
@@ -146,6 +151,7 @@ func (q *Queries) ListWallets(ctx context.Context, userID int32) ([]Wallet, erro
 			&i.Currency,
 			&i.Balance,
 			&i.Goals,
+			&i.BackdropImage,
 		); err != nil {
 			return nil, err
 		}
@@ -159,19 +165,20 @@ func (q *Queries) ListWallets(ctx context.Context, userID int32) ([]Wallet, erro
 
 const updateWallet = `-- name: UpdateWallet :one
 UPDATE wallets
-SET name = $1, type = $2, currency = $3, balance = $4, goals = $5, updated_at = CURRENT_TIMESTAMP
-WHERE id = $6 AND user_id = $7
-RETURNING id, user_id, name, type, created_at, updated_at, currency, balance, goals
+SET name = $1, type = $2, currency = $3, balance = $4, goals = $5, backdrop_image = $6, updated_at = CURRENT_TIMESTAMP
+WHERE id = $7 AND user_id = $8
+RETURNING id, user_id, name, type, created_at, updated_at, currency, balance, goals, backdrop_image
 `
 
 type UpdateWalletParams struct {
-	Name     string         `json:"name"`
-	Type     string         `json:"type"`
-	Currency string         `json:"currency"`
-	Balance  pgtype.Numeric `json:"balance"`
-	Goals    pgtype.Text    `json:"goals"`
-	ID       int32          `json:"id"`
-	UserID   int32          `json:"user_id"`
+	Name          string         `json:"name"`
+	Type          string         `json:"type"`
+	Currency      string         `json:"currency"`
+	Balance       pgtype.Numeric `json:"balance"`
+	Goals         pgtype.Text    `json:"goals"`
+	BackdropImage pgtype.Text    `json:"backdrop_image"`
+	ID            int32          `json:"id"`
+	UserID        int32          `json:"user_id"`
 }
 
 func (q *Queries) UpdateWallet(ctx context.Context, arg UpdateWalletParams) (Wallet, error) {
@@ -181,6 +188,7 @@ func (q *Queries) UpdateWallet(ctx context.Context, arg UpdateWalletParams) (Wal
 		arg.Currency,
 		arg.Balance,
 		arg.Goals,
+		arg.BackdropImage,
 		arg.ID,
 		arg.UserID,
 	)
@@ -195,6 +203,7 @@ func (q *Queries) UpdateWallet(ctx context.Context, arg UpdateWalletParams) (Wal
 		&i.Currency,
 		&i.Balance,
 		&i.Goals,
+		&i.BackdropImage,
 	)
 	return i, err
 }

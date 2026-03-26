@@ -52,13 +52,14 @@ type User struct {
 }
 
 type Wallet struct {
-	ID        int32            `json:"id"`
-	UserID    int32            `json:"user_id"`
-	Name      string           `json:"name"`
-	Type      string           `json:"type"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
-	Currency  string           `json:"currency"`
-	Balance   pgtype.Numeric   `json:"balance"`
-	Goals     pgtype.Text      `json:"goals"`
+	ID            int32            `json:"id"`
+	UserID        int32            `json:"user_id"`
+	Name          string           `json:"name"`
+	Type          string           `json:"type"`
+	CreatedAt     pgtype.Timestamp `json:"created_at"`
+	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
+	Currency      string           `json:"currency"`
+	Balance       pgtype.Numeric   `json:"balance"`
+	Goals         pgtype.Text      `json:"goals"`
+	BackdropImage pgtype.Text      `json:"backdrop_image"`
 }

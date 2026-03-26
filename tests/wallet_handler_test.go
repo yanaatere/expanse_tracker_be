@@ -134,7 +134,7 @@ func TestGetWallet_DBError(t *testing.T) {
 
 func TestCreateWallet_Success(t *testing.T) {
 	mock := &MockWalletModel{
-		CreateFn: func(_ context.Context, userID int32, name, wType, currency string, balance float64, goals *string) (*models.Wallet, error) {
+		CreateFn: func(_ context.Context, userID int32, name, wType, currency string, balance float64, goals *string, backdropImage *string) (*models.Wallet, error) {
 			return stubWallet(1, name), nil
 		},
 	}
@@ -210,7 +210,7 @@ func TestCreateWallet_InvalidJSON(t *testing.T) {
 
 func TestCreateWallet_DBError(t *testing.T) {
 	mock := &MockWalletModel{
-		CreateFn: func(_ context.Context, _ int32, _, _, _ string, _ float64, _ *string) (*models.Wallet, error) {
+		CreateFn: func(_ context.Context, _ int32, _, _, _ string, _ float64, _ *string, _ *string) (*models.Wallet, error) {
 			return nil, errors.New("db error")
 		},
 	}
@@ -229,7 +229,7 @@ func TestCreateWallet_DBError(t *testing.T) {
 
 func TestUpdateWallet_Success(t *testing.T) {
 	mock := &MockWalletModel{
-		UpdateFn: func(_ context.Context, id, _ int32, name, wType, currency string, balance float64, goals *string) (*models.Wallet, error) {
+		UpdateFn: func(_ context.Context, id, _ int32, name, wType, currency string, balance float64, goals *string, backdropImage *string) (*models.Wallet, error) {
 			return stubWallet(id, name), nil
 		},
 	}

@@ -25,11 +25,12 @@ func NewWalletHandlerWithModel(model WalletModelInterface) *WalletHandler {
 }
 
 type WalletInput struct {
-	Name     string  `json:"name"`
-	Type     string  `json:"type"`
-	Currency string  `json:"currency"`
-	Balance  float64 `json:"balance"`
-	Goals    *string `json:"goals"`
+	Name          string  `json:"name"`
+	Type          string  `json:"type"`
+	Currency      string  `json:"currency"`
+	Balance       float64 `json:"balance"`
+	Goals         *string `json:"goals"`
+	BackdropImage *string `json:"backdrop_image"`
 }
 
 // @Summary Get wallets
@@ -117,7 +118,7 @@ func (h *WalletHandler) CreateWallet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wallet, err := h.model.Create(r.Context(), userID, input.Name, input.Type, input.Currency, input.Balance, input.Goals)
+	wallet, err := h.model.Create(r.Context(), userID, input.Name, input.Type, input.Currency, input.Balance, input.Goals, input.BackdropImage)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -162,7 +163,7 @@ func (h *WalletHandler) UpdateWallet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wallet, err := h.model.Update(r.Context(), int32(id), userID, input.Name, input.Type, input.Currency, input.Balance, input.Goals)
+	wallet, err := h.model.Update(r.Context(), int32(id), userID, input.Name, input.Type, input.Currency, input.Balance, input.Goals, input.BackdropImage)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, err.Error())
 		return

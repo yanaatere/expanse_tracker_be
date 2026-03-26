@@ -136,8 +136,8 @@ func (m *MockTransactionModel) GetByWallet(ctx context.Context, userID, walletID
 type MockWalletModel struct {
 	GetAllFn func(ctx context.Context, userID int32) ([]models.Wallet, error)
 	GetFn    func(ctx context.Context, id, userID int32) (*models.Wallet, error)
-	CreateFn func(ctx context.Context, userID int32, name, walletType, currency string, balance float64, goals *string) (*models.Wallet, error)
-	UpdateFn func(ctx context.Context, id, userID int32, name, walletType, currency string, balance float64, goals *string) (*models.Wallet, error)
+	CreateFn func(ctx context.Context, userID int32, name, walletType, currency string, balance float64, goals *string, backdropImage *string) (*models.Wallet, error)
+	UpdateFn func(ctx context.Context, id, userID int32, name, walletType, currency string, balance float64, goals *string, backdropImage *string) (*models.Wallet, error)
 	DeleteFn func(ctx context.Context, id, userID int32) error
 }
 
@@ -147,11 +147,11 @@ func (m *MockWalletModel) GetAll(ctx context.Context, userID int32) ([]models.Wa
 func (m *MockWalletModel) Get(ctx context.Context, id, userID int32) (*models.Wallet, error) {
 	return m.GetFn(ctx, id, userID)
 }
-func (m *MockWalletModel) Create(ctx context.Context, userID int32, name, walletType, currency string, balance float64, goals *string) (*models.Wallet, error) {
-	return m.CreateFn(ctx, userID, name, walletType, currency, balance, goals)
+func (m *MockWalletModel) Create(ctx context.Context, userID int32, name, walletType, currency string, balance float64, goals *string, backdropImage *string) (*models.Wallet, error) {
+	return m.CreateFn(ctx, userID, name, walletType, currency, balance, goals, backdropImage)
 }
-func (m *MockWalletModel) Update(ctx context.Context, id, userID int32, name, walletType, currency string, balance float64, goals *string) (*models.Wallet, error) {
-	return m.UpdateFn(ctx, id, userID, name, walletType, currency, balance, goals)
+func (m *MockWalletModel) Update(ctx context.Context, id, userID int32, name, walletType, currency string, balance float64, goals *string, backdropImage *string) (*models.Wallet, error) {
+	return m.UpdateFn(ctx, id, userID, name, walletType, currency, balance, goals, backdropImage)
 }
 func (m *MockWalletModel) Delete(ctx context.Context, id, userID int32) error {
 	return m.DeleteFn(ctx, id, userID)

@@ -48,22 +48,27 @@ func (m *WalletModel) Get(ctx context.Context, id, userID int32) (*Wallet, error
 	return &w, nil
 }
 
-func (m *WalletModel) Create(ctx context.Context, userID int32, name, walletType, currency string, balance float64, goals *string) (*Wallet, error) {
+func (m *WalletModel) Create(ctx context.Context, userID int32, name, walletType, currency string, balance float64, goals *string, backdropImage *string) (*Wallet, error) {
 	var goalsText pgtype.Text
 	if goals != nil {
 		goalsText = pgtype.Text{String: *goals, Valid: true}
+	}
+	var backdropText pgtype.Text
+	if backdropImage != nil {
+		backdropText = pgtype.Text{String: *backdropImage, Valid: true}
 	}
 	var balanceNumeric pgtype.Numeric
 	if err := balanceNumeric.Scan(strconv.FormatFloat(balance, 'f', -1, 64)); err != nil {
 		return nil, err
 	}
 	w, err := m.q.CreateWallet(ctx, db.CreateWalletParams{
-		UserID:   userID,
-		Name:     name,
-		Type:     walletType,
-		Currency: currency,
-		Balance:  balanceNumeric,
-		Goals:    goalsText,
+		UserID:        userID,
+		Name:          name,
+		Type:          walletType,
+		Currency:      currency,
+		Balance:       balanceNumeric,
+		Goals:         goalsText,
+		BackdropImage: backdropText,
 	})
 	if err != nil {
 		return nil, err
@@ -71,23 +76,28 @@ func (m *WalletModel) Create(ctx context.Context, userID int32, name, walletType
 	return &w, nil
 }
 
-func (m *WalletModel) Update(ctx context.Context, id, userID int32, name, walletType, currency string, balance float64, goals *string) (*Wallet, error) {
+func (m *WalletModel) Update(ctx context.Context, id, userID int32, name, walletType, currency string, balance float64, goals *string, backdropImage *string) (*Wallet, error) {
 	var goalsText pgtype.Text
 	if goals != nil {
 		goalsText = pgtype.Text{String: *goals, Valid: true}
+	}
+	var backdropText pgtype.Text
+	if backdropImage != nil {
+		backdropText = pgtype.Text{String: *backdropImage, Valid: true}
 	}
 	var balanceNumeric pgtype.Numeric
 	if err := balanceNumeric.Scan(strconv.FormatFloat(balance, 'f', -1, 64)); err != nil {
 		return nil, err
 	}
 	w, err := m.q.UpdateWallet(ctx, db.UpdateWalletParams{
-		ID:       id,
-		UserID:   userID,
-		Name:     name,
-		Type:     walletType,
-		Currency: currency,
-		Balance:  balanceNumeric,
-		Goals:    goalsText,
+		ID:            id,
+		UserID:        userID,
+		Name:          name,
+		Type:          walletType,
+		Currency:      currency,
+		Balance:       balanceNumeric,
+		Goals:         goalsText,
+		BackdropImage: backdropText,
 	})
 	if err != nil {
 		return nil, err
