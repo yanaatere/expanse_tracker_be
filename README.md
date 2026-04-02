@@ -91,6 +91,7 @@ go run cmd/migrate/main.go
 go mod download
 ```
 
+
 4. Run the application
 ```bash
 go run main.go

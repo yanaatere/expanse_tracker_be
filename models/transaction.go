@@ -262,28 +262,32 @@ type WalletTransactionRow struct {
 	Type            string  `json:"type"`
 	Amount          float64 `json:"amount"`
 	Description     string  `json:"description"`
-	CategoryName    string  `json:"category_name"`
+	CategoryID      *int32  `json:"category_id,omitempty"`
 	TransactionDate string  `json:"transaction_date"`
 	ReceiptImageUrl string  `json:"receipt_image_url,omitempty"`
 }
 
-// GetByWallet returns all transactions for a specific wallet, optionally filtered by type.
+// GetByWallet returns all transactions for a specific wallet, optionally filtered by type and/or category.
 // typeFilter can be "income", "expense", or "" for all.
-func (m *TransactionModel) GetByWallet(ctx context.Context, userID, walletID int32, typeFilter string) ([]WalletTransactionRow, error) {
+// categoryID filters by category when non-nil.
+func (m *TransactionModel) GetByWallet(ctx context.Context, userID, walletID int32, typeFilter string, categoryID *int32) ([]WalletTransactionRow, error) {
 	query := `
 		SELECT t.id, t.type, t.amount::float8,
 		       COALESCE(t.description, ''),
-		       COALESCE(c.name, ''),
+		       t.category_id,
 		       t.transaction_date::text,
 		       COALESCE(t.receipt_image_url, '')
 		FROM transactions t
-		LEFT JOIN categories c ON t.category_id = c.id
 		WHERE t.user_id = $1 AND t.wallet_id = $2`
 
 	args := []interface{}{userID, walletID}
 	if typeFilter == "income" || typeFilter == "expense" {
-		query += ` AND t.type = $3`
 		args = append(args, typeFilter)
+		query += fmt.Sprintf(` AND t.type = $%d`, len(args))
+	}
+	if categoryID != nil {
+		args = append(args, *categoryID)
+		query += fmt.Sprintf(` AND t.category_id = $%d`, len(args))
 	}
 	query += ` ORDER BY t.transaction_date DESC, t.created_at DESC`
 
@@ -296,7 +300,7 @@ func (m *TransactionModel) GetByWallet(ctx context.Context, userID, walletID int
 	var result []WalletTransactionRow
 	for rows.Next() {
 		var r WalletTransactionRow
-		if err := rows.Scan(&r.ID, &r.Type, &r.Amount, &r.Description, &r.CategoryName, &r.TransactionDate, &r.ReceiptImageUrl); err != nil {
+		if err := rows.Scan(&r.ID, &r.Type, &r.Amount, &r.Description, &r.CategoryID, &r.TransactionDate, &r.ReceiptImageUrl); err != nil {
 			return nil, fmt.Errorf("failed to scan wallet transaction: %w", err)
 		}
 		result = append(result, r)

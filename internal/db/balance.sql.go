@@ -56,54 +56,6 @@ func (q *Queries) GetBalance(ctx context.Context, userID int32) (Balance, error)
 	return i, err
 }
 
-const getBalanceByCategory = `-- name: GetBalanceByCategory :many
-SELECT 
-    c.id AS category_id,
-    c.name AS category_name,
-    t.type,
-    COALESCE(SUM(t.amount), 0)::numeric AS total_amount,
-    COUNT(t.id)::bigint AS transaction_count
-FROM transactions t
-LEFT JOIN categories c ON t.category_id = c.id
-WHERE t.user_id = $1
-GROUP BY c.id, c.name, t.type
-ORDER BY total_amount DESC
-`
-
-type GetBalanceByCategoryRow struct {
-	CategoryID       pgtype.Int4    `json:"category_id"`
-	CategoryName     pgtype.Text    `json:"category_name"`
-	Type             string         `json:"type"`
-	TotalAmount      pgtype.Numeric `json:"total_amount"`
-	TransactionCount int64          `json:"transaction_count"`
-}
-
-func (q *Queries) GetBalanceByCategory(ctx context.Context, userID int32) ([]GetBalanceByCategoryRow, error) {
-	rows, err := q.db.Query(ctx, getBalanceByCategory, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetBalanceByCategoryRow
-	for rows.Next() {
-		var i GetBalanceByCategoryRow
-		if err := rows.Scan(
-			&i.CategoryID,
-			&i.CategoryName,
-			&i.Type,
-			&i.TotalAmount,
-			&i.TransactionCount,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getBalanceByDateRange = `-- name: GetBalanceByDateRange :one
 SELECT 
     COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0)::numeric AS total_income,

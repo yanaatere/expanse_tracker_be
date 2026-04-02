@@ -9,12 +9,18 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/redis/go-redis/v9"
 )
 
+const MinioBucket = "receipts"
+
 type Config struct {
-	DB    *pgxpool.Pool
-	Redis *redis.Client
+	DB             *pgxpool.Pool
+	Redis          *redis.Client
+	Minio          *minio.Client
+	MinioPublicURL string
 }
 
 func LoadConfig() (*Config, error) {
@@ -82,9 +88,45 @@ func LoadConfig() (*Config, error) {
 		log.Printf("Warning: Redis unavailable (%v) — bot linking will not work", err)
 	}
 
+	// MinIO configuration
+	minioEndpoint := getEnv("MINIO_ENDPOINT", "localhost:9000")
+	minioAccess := getEnv("MINIO_ACCESS_KEY", "minioadmin")
+	minioSecret := getEnv("MINIO_SECRET_KEY", "minioadmin")
+	minioUseSSL := getEnv("MINIO_USE_SSL", "false") == "true"
+	minioPublicURL := getEnv("MINIO_PUBLIC_URL", "http://localhost:9000")
+
+	minioClient, err := minio.New(minioEndpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(minioAccess, minioSecret, ""),
+		Secure: minioUseSSL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create minio client: %w", err)
+	}
+
+	// Ensure bucket exists with public read policy
+	ctx := context.Background()
+	exists, err := minioClient.BucketExists(ctx, MinioBucket)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check minio bucket: %w", err)
+	}
+	if !exists {
+		if err := minioClient.MakeBucket(ctx, MinioBucket, minio.MakeBucketOptions{}); err != nil {
+			return nil, fmt.Errorf("failed to create minio bucket: %w", err)
+		}
+		log.Printf("Created MinIO bucket: %s", MinioBucket)
+	}
+
+	// Set bucket policy to allow public reads
+	policy := `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::` + MinioBucket + `/*"]}]}`
+	if err := minioClient.SetBucketPolicy(ctx, MinioBucket, policy); err != nil {
+		log.Printf("Warning: failed to set minio bucket policy: %v", err)
+	}
+
 	return &Config{
-		DB:    db,
-		Redis: redisClient,
+		DB:             db,
+		Redis:          redisClient,
+		Minio:          minioClient,
+		MinioPublicURL: minioPublicURL,
 	}, nil
 }
 

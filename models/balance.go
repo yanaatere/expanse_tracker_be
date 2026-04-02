@@ -38,15 +38,6 @@ type MonthlyBalance struct {
 	Net     float64 `json:"net"`
 }
 
-// CategoryBalance represents total amount per category per type
-type CategoryBalance struct {
-	CategoryID       *int32  `json:"category_id"`
-	CategoryName     string  `json:"category_name"`
-	Type             string  `json:"type"`
-	TotalAmount      float64 `json:"total_amount"`
-	TransactionCount int64   `json:"transaction_count"`
-}
-
 // GetUserBalance returns the combined balance:
 // - total_income and total_expense are computed from transactions
 // - total_balance is read from the balances table
@@ -185,37 +176,6 @@ func (m *BalanceModel) GetBalanceByDateRange(ctx context.Context, userID int32, 
 		TotalExpense: expense.Float64,
 		TotalBalance: balance.Float64,
 	}, nil
-}
-
-func (m *BalanceModel) GetBalanceByCategory(ctx context.Context, userID int32) ([]CategoryBalance, error) {
-	rows, err := m.q.GetBalanceByCategory(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	var result []CategoryBalance
-	for _, row := range rows {
-		amount, _ := row.TotalAmount.Float64Value()
-
-		var catID *int32
-		if row.CategoryID.Valid {
-			catID = &row.CategoryID.Int32
-		}
-
-		catName := "Uncategorized"
-		if row.CategoryName.Valid {
-			catName = row.CategoryName.String
-		}
-
-		result = append(result, CategoryBalance{
-			CategoryID:       catID,
-			CategoryName:     catName,
-			Type:             row.Type,
-			TotalAmount:      amount.Float64,
-			TransactionCount: row.TransactionCount,
-		})
-	}
-	return result, nil
 }
 
 // BeginTx starts a new database transaction

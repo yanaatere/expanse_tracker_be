@@ -132,33 +132,6 @@ func (h *BalanceHandler) GetBalanceByDateRange(w http.ResponseWriter, r *http.Re
 	WriteSuccess(w, http.StatusOK, balance)
 }
 
-// GetBalanceByCategory returns balance breakdown per category.
-// GET /api/balance/category?user_id=1
-// @Summary Get balance by category
-// @Description Get category-wise balance summary for user (protected)
-// @Tags Balances
-// @Produce json
-// @Param user_id query int true "User ID"
-// @Success 200 {array} interface{}
-// @Failure 400 {object} MessageResponse
-// @Failure 500 {object} MessageResponse
-// @Router /api/balance/category [get]
-func (h *BalanceHandler) GetBalanceByCategory(w http.ResponseWriter, r *http.Request) {
-	userID, err := parseUserID(r)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	categories, err := h.model.GetBalanceByCategory(r.Context(), int32(userID))
-	if err != nil {
-		WriteError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	WriteSuccess(w, http.StatusOK, categories)
-}
-
 // RecalculateBalance recalculates the balance from scratch (safety net).
 // POST /api/balance/recalculate?user_id=1
 // @Summary Recalculate balance

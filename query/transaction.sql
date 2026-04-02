@@ -5,27 +5,21 @@ RETURNING id, user_id, type, amount, description, category_id, sub_category_id, 
 
 -- name: GetTransaction :one
 SELECT t.id, t.user_id, t.type, t.amount, t.description,
-       t.category_id, c.name as category_name,
-       t.sub_category_id, sc.name as sub_category_name,
+       t.category_id, t.sub_category_id,
        t.wallet_id, w.name as wallet_name,
        t.receipt_image_url,
        t.transaction_date, t.created_at, t.updated_at
 FROM transactions t
-LEFT JOIN categories c ON t.category_id = c.id
-LEFT JOIN categories sc ON t.sub_category_id = sc.id
 LEFT JOIN wallets w ON t.wallet_id = w.id
 WHERE t.id = $1 AND t.user_id = $2 LIMIT 1;
 
 -- name: ListTransactions :many
 SELECT t.id, t.user_id, t.type, t.amount, t.description,
-       t.category_id, c.name as category_name,
-       t.sub_category_id, sc.name as sub_category_name,
+       t.category_id, t.sub_category_id,
        t.wallet_id, w.name as wallet_name,
        t.receipt_image_url,
        t.transaction_date, t.created_at, t.updated_at
 FROM transactions t
-LEFT JOIN categories c ON t.category_id = c.id
-LEFT JOIN categories sc ON t.sub_category_id = sc.id
 LEFT JOIN wallets w ON t.wallet_id = w.id
 WHERE t.user_id = $1
 ORDER BY t.transaction_date DESC, t.created_at DESC;

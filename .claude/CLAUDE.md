@@ -62,7 +62,19 @@ HTTP → Middleware → Controllers (route registration) → Handlers (HTTP logi
 
 **Swagger docs** are served at `/swagger/` and are generated in the `docs/` directory. Only enabled when `ENVIRONMENT` != `production`.
 
-**File uploads:** Receipt images are stored under `uploads/` and served statically at `/uploads/`. The `upload_controller.go` handles multipart form uploads.
+**File uploads:** Receipt images are uploaded to MinIO object storage (S3-compatible) and served via `MINIO_PUBLIC_URL`. The `upload_controller.go` handles multipart form uploads to the `receipts` bucket.
+
+**Bot integration:** `handlers/bot_handler.go` + `controllers/bot_controller.go` implement Telegram bot linking via Redis. A 6-digit `link_code` (stored as `link_code:<code>` in Redis) maps to a Telegram `chatID`. Consuming the code writes the user's JWT and ID into the `session:<chatID>` Redis key. The `BotHandler` takes a `*redis.Client` directly (not an interface) — it is not covered by the mock-based test pattern.
+
+## Development Guidelines
+
+Before making **any code changes** (new features, bug fixes, refactors, etc.), always invoke the `golang-dev` skill first:
+
+```
+Use the Skill tool with skill: "golang-dev"
+```
+
+This skill provides Go-specific development guidelines and patterns to follow when implementing changes in this codebase.
 
 ## Configuration
 
@@ -70,5 +82,10 @@ Environment variables loaded from `.env` (or system env):
 - `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`
 - `PORT` — HTTP server port (default `8080`)
 - `ENVIRONMENT` — set to `production` to disable Swagger UI
+- `REDIS_URL` — Redis connection URL (default `redis://localhost:6379/0`); used for bot session linking
+- `MINIO_ENDPOINT` — MinIO server address (default `localhost:9000`)
+- `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY` — MinIO credentials (default `minioadmin`/`minioadmin`)
+- `MINIO_USE_SSL` — set to `true` to enable TLS for MinIO (default `false`)
+- `MINIO_PUBLIC_URL` — base URL for serving uploaded files (default `http://localhost:9000`)
 
-SSL is enabled automatically when `DB_HOST` is not `localhost`. IPv4 is forced when running in Docker.
+SSL is enabled automatically when `DB_HOST` is not `localhost` or `db`. IPv4 is forced for remote DB hosts.

@@ -39,24 +39,19 @@ func main() {
 
 	// Initialize controllers
 	userController := controllers.NewUserController(cfg.DB)
-	categoryController := controllers.NewCategoryController(cfg.DB)
-	transactionController := controllers.NewTransactionController(cfg.DB)
+transactionController := controllers.NewTransactionController(cfg.DB)
 	balanceController := controllers.NewBalanceController(cfg.DB)
 	walletController := controllers.NewWalletController(cfg.DB) // cfg.DB is *pgxpool.Pool
-	uploadController := controllers.NewUploadController()
+	uploadController := controllers.NewUploadController(cfg.Minio, config.MinioBucket, cfg.MinioPublicURL)
 	botController := controllers.NewBotController(cfg.Redis)
 
 	// Register routes
 	userController.RegisterRoutes(r)
-	categoryController.RegisterRoutes(r)
-	transactionController.RegisterRoutes(r)
+transactionController.RegisterRoutes(r)
 	balanceController.RegisterRoutes(r)
 	walletController.RegisterRoutes(r)
 	uploadController.RegisterRoutes(r)
 	botController.RegisterRoutes(r)
-
-	// Serve uploaded files (receipts, etc.)
-	r.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 
 	// Swagger route (enabled only outside production)
 	if os.Getenv("ENVIRONMENT") != "production" {

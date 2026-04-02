@@ -111,14 +111,11 @@ func (q *Queries) GetDashboardStats(ctx context.Context, userID int32) (GetDashb
 
 const getTransaction = `-- name: GetTransaction :one
 SELECT t.id, t.user_id, t.type, t.amount, t.description,
-       t.category_id, c.name as category_name,
-       t.sub_category_id, sc.name as sub_category_name,
+       t.category_id, t.sub_category_id,
        t.wallet_id, w.name as wallet_name,
        t.receipt_image_url,
        t.transaction_date, t.created_at, t.updated_at
 FROM transactions t
-LEFT JOIN categories c ON t.category_id = c.id
-LEFT JOIN categories sc ON t.sub_category_id = sc.id
 LEFT JOIN wallets w ON t.wallet_id = w.id
 WHERE t.id = $1 AND t.user_id = $2 LIMIT 1
 `
@@ -135,9 +132,7 @@ type GetTransactionRow struct {
 	Amount          pgtype.Numeric   `json:"amount"`
 	Description     pgtype.Text      `json:"description"`
 	CategoryID      pgtype.Int4      `json:"category_id"`
-	CategoryName    pgtype.Text      `json:"category_name"`
 	SubCategoryID   pgtype.Int4      `json:"sub_category_id"`
-	SubCategoryName pgtype.Text      `json:"sub_category_name"`
 	WalletID        pgtype.Int4      `json:"wallet_id"`
 	WalletName      pgtype.Text      `json:"wallet_name"`
 	ReceiptImageUrl pgtype.Text      `json:"receipt_image_url"`
@@ -156,9 +151,7 @@ func (q *Queries) GetTransaction(ctx context.Context, arg GetTransactionParams) 
 		&i.Amount,
 		&i.Description,
 		&i.CategoryID,
-		&i.CategoryName,
 		&i.SubCategoryID,
-		&i.SubCategoryName,
 		&i.WalletID,
 		&i.WalletName,
 		&i.ReceiptImageUrl,
@@ -171,14 +164,11 @@ func (q *Queries) GetTransaction(ctx context.Context, arg GetTransactionParams) 
 
 const listTransactions = `-- name: ListTransactions :many
 SELECT t.id, t.user_id, t.type, t.amount, t.description,
-       t.category_id, c.name as category_name,
-       t.sub_category_id, sc.name as sub_category_name,
+       t.category_id, t.sub_category_id,
        t.wallet_id, w.name as wallet_name,
        t.receipt_image_url,
        t.transaction_date, t.created_at, t.updated_at
 FROM transactions t
-LEFT JOIN categories c ON t.category_id = c.id
-LEFT JOIN categories sc ON t.sub_category_id = sc.id
 LEFT JOIN wallets w ON t.wallet_id = w.id
 WHERE t.user_id = $1
 ORDER BY t.transaction_date DESC, t.created_at DESC
@@ -191,9 +181,7 @@ type ListTransactionsRow struct {
 	Amount          pgtype.Numeric   `json:"amount"`
 	Description     pgtype.Text      `json:"description"`
 	CategoryID      pgtype.Int4      `json:"category_id"`
-	CategoryName    pgtype.Text      `json:"category_name"`
 	SubCategoryID   pgtype.Int4      `json:"sub_category_id"`
-	SubCategoryName pgtype.Text      `json:"sub_category_name"`
 	WalletID        pgtype.Int4      `json:"wallet_id"`
 	WalletName      pgtype.Text      `json:"wallet_name"`
 	ReceiptImageUrl pgtype.Text      `json:"receipt_image_url"`
@@ -218,9 +206,7 @@ func (q *Queries) ListTransactions(ctx context.Context, userID int32) ([]ListTra
 			&i.Amount,
 			&i.Description,
 			&i.CategoryID,
-			&i.CategoryName,
 			&i.SubCategoryID,
-			&i.SubCategoryName,
 			&i.WalletID,
 			&i.WalletName,
 			&i.ReceiptImageUrl,

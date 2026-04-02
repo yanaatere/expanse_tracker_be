@@ -16,15 +16,6 @@ type Balance struct {
 	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
 }
 
-type Category struct {
-	ID          int32            `json:"id"`
-	Name        string           `json:"name"`
-	Description pgtype.Text      `json:"description"`
-	CreatedAt   pgtype.Timestamp `json:"created_at"`
-	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
-	ParentID    pgtype.Int4      `json:"parent_id"`
-}
-
 type Transaction struct {
 	ID              int32            `json:"id"`
 	UserID          int32            `json:"user_id"`

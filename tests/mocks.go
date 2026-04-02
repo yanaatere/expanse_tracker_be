@@ -12,7 +12,6 @@ import (
 
 // Ensure mocks satisfy the interfaces at compile time.
 var _ handlers.UserModelInterface = (*MockUserModel)(nil)
-var _ handlers.CategoryModelInterface = (*MockCategoryModel)(nil)
 var _ handlers.TransactionModelInterface = (*MockTransactionModel)(nil)
 var _ handlers.WalletModelInterface = (*MockWalletModel)(nil)
 var _ handlers.BalanceModelInterface = (*MockBalanceModel)(nil)
@@ -70,35 +69,6 @@ func (m *MockUserModel) ClearPasswordResetToken(ctx context.Context, id int32) (
 	return m.ClearPasswordResetTokenFn(ctx, id)
 }
 
-// MockCategoryModel is a configurable test double for CategoryModelInterface.
-type MockCategoryModel struct {
-	GetAllFn           func(ctx context.Context) ([]models.Category, error)
-	GetFn              func(ctx context.Context, id int32) (*models.Category, error)
-	GetSubCategoriesFn func(ctx context.Context, parentID int32) ([]models.Category, error)
-	CreateFn           func(ctx context.Context, name, description string, parentID *int32) (*models.Category, error)
-	UpdateFn           func(ctx context.Context, id int32, name, description string) (*models.Category, error)
-	DeleteFn           func(ctx context.Context, id int32) error
-}
-
-func (m *MockCategoryModel) GetAll(ctx context.Context) ([]models.Category, error) {
-	return m.GetAllFn(ctx)
-}
-func (m *MockCategoryModel) Get(ctx context.Context, id int32) (*models.Category, error) {
-	return m.GetFn(ctx, id)
-}
-func (m *MockCategoryModel) GetSubCategories(ctx context.Context, parentID int32) ([]models.Category, error) {
-	return m.GetSubCategoriesFn(ctx, parentID)
-}
-func (m *MockCategoryModel) Create(ctx context.Context, name, description string, parentID *int32) (*models.Category, error) {
-	return m.CreateFn(ctx, name, description, parentID)
-}
-func (m *MockCategoryModel) Update(ctx context.Context, id int32, name, description string) (*models.Category, error) {
-	return m.UpdateFn(ctx, id, name, description)
-}
-func (m *MockCategoryModel) Delete(ctx context.Context, id int32) error {
-	return m.DeleteFn(ctx, id)
-}
-
 // MockTransactionModel is a configurable test double for TransactionModelInterface.
 type MockTransactionModel struct {
 	CreateFn            func(ctx context.Context, userID int32, tType string, amount float64, description string, categoryID *int32, subCategoryID *int32, walletID *int32, date pgtype.Date, receiptImageUrl string) (*models.Transaction, error)
@@ -107,7 +77,7 @@ type MockTransactionModel struct {
 	UpdateFn            func(ctx context.Context, id int32, userID int32, tType string, amount float64, description string, categoryID *int32, subCategoryID *int32, walletID *int32, date pgtype.Date) (*models.Transaction, error)
 	DeleteFn            func(ctx context.Context, id int32, userID int32) error
 	GetDashboardStatsFn func(ctx context.Context, userID int32) (*models.DashboardStats, error)
-	GetByWalletFn       func(ctx context.Context, userID, walletID int32, typeFilter string) ([]models.WalletTransactionRow, error)
+	GetByWalletFn       func(ctx context.Context, userID, walletID int32, typeFilter string, categoryID *int32) ([]models.WalletTransactionRow, error)
 }
 
 func (m *MockTransactionModel) Create(ctx context.Context, userID int32, tType string, amount float64, description string, categoryID *int32, subCategoryID *int32, walletID *int32, date pgtype.Date, receiptImageUrl string) (*models.Transaction, error) {
@@ -128,8 +98,8 @@ func (m *MockTransactionModel) Delete(ctx context.Context, id int32, userID int3
 func (m *MockTransactionModel) GetDashboardStats(ctx context.Context, userID int32) (*models.DashboardStats, error) {
 	return m.GetDashboardStatsFn(ctx, userID)
 }
-func (m *MockTransactionModel) GetByWallet(ctx context.Context, userID, walletID int32, typeFilter string) ([]models.WalletTransactionRow, error) {
-	return m.GetByWalletFn(ctx, userID, walletID, typeFilter)
+func (m *MockTransactionModel) GetByWallet(ctx context.Context, userID, walletID int32, typeFilter string, categoryID *int32) ([]models.WalletTransactionRow, error) {
+	return m.GetByWalletFn(ctx, userID, walletID, typeFilter, categoryID)
 }
 
 // MockWalletModel is a configurable test double for WalletModelInterface.
@@ -162,7 +132,6 @@ type MockBalanceModel struct {
 	GetUserBalanceFn        func(ctx context.Context, userID int32) (*models.UserBalanceResponse, error)
 	GetMonthlyBalanceFn     func(ctx context.Context, userID int32) ([]models.MonthlyBalance, error)
 	GetBalanceByDateRangeFn func(ctx context.Context, userID int32, startDate, endDate pgtype.Date) (*models.UserBalanceResponse, error)
-	GetBalanceByCategoryFn  func(ctx context.Context, userID int32) ([]models.CategoryBalance, error)
 	RecalculateBalanceFn    func(ctx context.Context, userID int32) (*models.UserBalanceResponse, error)
 }
 
@@ -174,9 +143,6 @@ func (m *MockBalanceModel) GetMonthlyBalance(ctx context.Context, userID int32) 
 }
 func (m *MockBalanceModel) GetBalanceByDateRange(ctx context.Context, userID int32, startDate, endDate pgtype.Date) (*models.UserBalanceResponse, error) {
 	return m.GetBalanceByDateRangeFn(ctx, userID, startDate, endDate)
-}
-func (m *MockBalanceModel) GetBalanceByCategory(ctx context.Context, userID int32) ([]models.CategoryBalance, error) {
-	return m.GetBalanceByCategoryFn(ctx, userID)
 }
 func (m *MockBalanceModel) RecalculateBalance(ctx context.Context, userID int32) (*models.UserBalanceResponse, error) {
 	return m.RecalculateBalanceFn(ctx, userID)

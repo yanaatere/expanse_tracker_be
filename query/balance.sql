@@ -60,15 +60,3 @@ WHERE user_id = $1
   AND transaction_date >= $2 
   AND transaction_date <= $3;
 
--- name: GetBalanceByCategory :many
-SELECT 
-    c.id AS category_id,
-    c.name AS category_name,
-    t.type,
-    COALESCE(SUM(t.amount), 0)::numeric AS total_amount,
-    COUNT(t.id)::bigint AS transaction_count
-FROM transactions t
-LEFT JOIN categories c ON t.category_id = c.id
-WHERE t.user_id = $1
-GROUP BY c.id, c.name, t.type
-ORDER BY total_amount DESC;

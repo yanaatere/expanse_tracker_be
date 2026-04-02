@@ -303,7 +303,15 @@ func (h *TransactionHandler) GetTransactionsByWallet(w http.ResponseWriter, r *h
 
 	typeFilter := r.URL.Query().Get("type")
 
-	transactions, err := h.model.GetByWallet(r.Context(), userID, int32(walletID), typeFilter)
+	var categoryID *int32
+	if catStr := r.URL.Query().Get("category_id"); catStr != "" {
+		if catInt, err := strconv.Atoi(catStr); err == nil {
+			v := int32(catInt)
+			categoryID = &v
+		}
+	}
+
+	transactions, err := h.model.GetByWallet(r.Context(), userID, int32(walletID), typeFilter, categoryID)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, err.Error())
 		return

@@ -24,6 +24,5 @@ func (c *BalanceController) RegisterRoutes(router *mux.Router) {
 	router.Handle("/api/balance", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetBalance))).Methods("GET")
 	router.Handle("/api/balance/monthly", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetMonthlyBalance))).Methods("GET")
 	router.Handle("/api/balance/range", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetBalanceByDateRange))).Methods("GET")
-	router.Handle("/api/balance/category", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetBalanceByCategory))).Methods("GET")
-	router.Handle("/api/balance/recalculate", auth.JWTMiddleware(http.HandlerFunc(c.handler.RecalculateBalance))).Methods("POST")
+router.Handle("/api/balance/recalculate", auth.JWTMiddleware(http.HandlerFunc(c.handler.RecalculateBalance))).Methods("POST")
 }
