@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/yanaatere/expense_tracking/auth"
 	"github.com/yanaatere/expense_tracking/models"
 )
 
@@ -171,10 +172,10 @@ func (h *BalanceHandler) RecalculateBalance(w http.ResponseWriter, r *http.Reque
 // @Failure 400 {object} MessageResponse
 // @Failure 500 {object} MessageResponse
 // @Router /api/home/summary [get]
-func (h *BalanceHandler) GetHomeSummary(w http.ResponseWriter, r *http.Request) {
-	userID, err := parseUserID(r)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, err.Error())
+func (h *BalanceHandler)GetHomeSummary(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserIDFromContext(r.Context())
+	if userID == 0 {
+		WriteError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
