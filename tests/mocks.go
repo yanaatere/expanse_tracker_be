@@ -133,6 +133,7 @@ type MockBalanceModel struct {
 	GetMonthlyBalanceFn     func(ctx context.Context, userID int32) ([]models.MonthlyBalance, error)
 	GetBalanceByDateRangeFn func(ctx context.Context, userID int32, startDate, endDate pgtype.Date) (*models.UserBalanceResponse, error)
 	RecalculateBalanceFn    func(ctx context.Context, userID int32) (*models.UserBalanceResponse, error)
+	GetHomeSummaryFn        func(ctx context.Context, userID int32, loc *time.Location) (*models.HomeSummaryResponse, error)
 }
 
 func (m *MockBalanceModel) GetUserBalance(ctx context.Context, userID int32) (*models.UserBalanceResponse, error) {
@@ -146,4 +147,7 @@ func (m *MockBalanceModel) GetBalanceByDateRange(ctx context.Context, userID int
 }
 func (m *MockBalanceModel) RecalculateBalance(ctx context.Context, userID int32) (*models.UserBalanceResponse, error) {
 	return m.RecalculateBalanceFn(ctx, userID)
+}
+func (m *MockBalanceModel) GetHomeSummary(ctx context.Context, userID int32, loc *time.Location) (*models.HomeSummaryResponse, error) {
+	return m.GetHomeSummaryFn(ctx, userID, loc)
 }

@@ -103,7 +103,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Create user
 	user, err := h.userModel.CreateWithPassword(r.Context(), req.Username, req.Email, hashedPassword)
 	if err != nil {
-		WriteError(w, http.StatusInternalServerError, "Error creating account: "+err.Error())
+		WriteError(w, http.StatusInternalServerError, "Error creating account")
 		return
 	}
 

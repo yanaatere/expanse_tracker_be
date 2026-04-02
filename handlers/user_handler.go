@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/yanaatere/expense_tracking/auth"
 	"github.com/yanaatere/expense_tracking/internal/db"
 	"github.com/yanaatere/expense_tracking/models"
 )
@@ -29,30 +30,42 @@ type UserInput struct {
 	Email    string `json:"email"`
 }
 
-// @Summary Get users
-// @Description Get all users (protected)
+// @Summary Get current user
+// @Description Get the authenticated user's profile (protected)
 // @Tags Users
 // @Produce json
-// @Success 200 {array} object
-// @Failure 500 {object} MessageResponse
+// @Success 200 {object} object
+// @Failure 401 {object} MessageResponse
+// @Failure 404 {object} MessageResponse
 // @Router /api/users [get]
 func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := h.model.GetAll(r.Context())
-	if err != nil {
-		WriteError(w, http.StatusInternalServerError, err.Error())
+	userID := auth.GetUserIDFromContext(r.Context())
+	if userID == 0 {
+		WriteError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
-	WriteSuccess(w, http.StatusOK, users)
+	user, err := h.model.Get(r.Context(), userID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "Failed to retrieve user")
+		return
+	}
+	if user == nil {
+		WriteError(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	WriteSuccess(w, http.StatusOK, user)
 }
 
 // @Summary Get user
-// @Description Get user by id (protected)
+// @Description Get the authenticated user by id — must match JWT identity (protected)
 // @Tags Users
 // @Produce json
 // @Param id path int true "User ID"
 // @Success 200 {object} object
 // @Failure 400 {object} MessageResponse
+// @Failure 403 {object} MessageResponse
 // @Failure 404 {object} MessageResponse
 // @Router /api/users/{id} [get]
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
@@ -63,9 +76,14 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if auth.GetUserIDFromContext(r.Context()) != int32(id) {
+		WriteError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+
 	user, err := h.model.Get(r.Context(), int32(id))
 	if err != nil {
-		WriteError(w, http.StatusInternalServerError, err.Error())
+		WriteError(w, http.StatusInternalServerError, "Failed to retrieve user")
 		return
 	}
 	if user == nil {
@@ -88,13 +106,13 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var input UserInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		WriteError(w, http.StatusBadRequest, err.Error())
+		WriteError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
 	user, err := h.model.Create(r.Context(), input.Username, input.Email)
 	if err != nil {
-		WriteError(w, http.StatusInternalServerError, err.Error())
+		WriteError(w, http.StatusInternalServerError, "Failed to create user")
 		return
 	}
 
@@ -102,7 +120,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Update user
-// @Description Update user info (protected)
+// @Description Update the authenticated user's info — must match JWT identity (protected)
 // @Tags Users
 // @Accept json
 // @Produce json
@@ -110,6 +128,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 // @Param request body UserInput true "Update user request"
 // @Success 200 {object} object
 // @Failure 400 {object} MessageResponse
+// @Failure 403 {object} MessageResponse
 // @Failure 404 {object} MessageResponse
 // @Router /api/users/{id} [put]
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
@@ -120,15 +139,20 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if auth.GetUserIDFromContext(r.Context()) != int32(id) {
+		WriteError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+
 	var input UserInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		WriteError(w, http.StatusBadRequest, err.Error())
+		WriteError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
 	user, err := h.model.Update(r.Context(), int32(id), input.Username, input.Email)
 	if err != nil {
-		WriteError(w, http.StatusInternalServerError, err.Error())
+		WriteError(w, http.StatusInternalServerError, "Failed to update user")
 		return
 	}
 	if user == nil {
@@ -140,12 +164,12 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Delete user
-// @Description Delete user by id (protected)
+// @Description Delete the authenticated user — must match JWT identity (protected)
 // @Tags Users
 // @Param id path int true "User ID"
 // @Success 204 {object} MessageResponse
 // @Failure 400 {object} MessageResponse
-// @Failure 500 {object} MessageResponse
+// @Failure 403 {object} MessageResponse
 // @Router /api/users/{id} [delete]
 func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -155,9 +179,13 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.model.Delete(r.Context(), int32(id))
-	if err != nil {
-		WriteError(w, http.StatusInternalServerError, err.Error())
+	if auth.GetUserIDFromContext(r.Context()) != int32(id) {
+		WriteError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+
+	if err := h.model.Delete(r.Context(), int32(id)); err != nil {
+		WriteError(w, http.StatusInternalServerError, "Failed to delete user")
 		return
 	}
 

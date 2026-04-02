@@ -3,7 +3,7 @@ package auth
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
+	"log"
 )
 
 func GenerateResetToken() (string, error) {
@@ -15,9 +15,9 @@ func GenerateResetToken() (string, error) {
 }
 
 func SendPasswordResetEmail(email, resetToken string) error {
-	// This is a placeholder implementation
-	// In production, integrate with an email service like SendGrid, Mailgun, or AWS SES
-	resetLink := fmt.Sprintf("https://your-frontend.com/reset-password?token=%s", resetToken)
-	fmt.Printf("Password reset link for %s: %s\n", email, resetLink)
+	// TODO: integrate with an email provider (SendGrid, Mailgun, AWS SES).
+	// The reset token is intentionally NOT logged here to avoid leaking it to log aggregators.
+	log.Printf("WARN: password reset email stub called for %s — wire up a real email provider", email)
+	_ = resetToken
 	return nil
 }

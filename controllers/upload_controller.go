@@ -13,9 +13,9 @@ type UploadController struct {
 	handler *handlers.UploadHandler
 }
 
-func NewUploadController(minioClient *minio.Client, bucket, minioPublicURL string) *UploadController {
+func NewUploadController(minioClient *minio.Client, bucket string) *UploadController {
 	return &UploadController{
-		handler: handlers.NewUploadHandler(minioClient, bucket, minioPublicURL),
+		handler: handlers.NewUploadHandler(minioClient, bucket),
 	}
 }
 
@@ -24,6 +24,10 @@ func (c *UploadController) RegisterRoutes(router *mux.Router) {
 		"/api/uploads/receipts",
 		auth.JWTMiddleware(http.HandlerFunc(c.handler.UploadReceipt)),
 	).Methods("POST")
+	router.Handle(
+		"/api/uploads/receipts/{objectName}",
+		auth.JWTMiddleware(http.HandlerFunc(c.handler.GetSignedReceiptURL)),
+	).Methods("GET")
 	router.Handle(
 		"/api/uploads/receipts/{objectName}",
 		auth.JWTMiddleware(http.HandlerFunc(c.handler.DeleteReceipt)),

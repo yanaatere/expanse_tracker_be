@@ -14,7 +14,10 @@ import (
 	"github.com/yanaatere/expense_tracking/auth"
 )
 
-const maxUploadSize = 5 << 20 // 5 MB
+const (
+	maxUploadSize  = 5 << 20 // 5 MB
+	signedURLExpiry = time.Hour
+)
 
 var allowedMimeTypes = map[string]string{
 	"image/jpeg": ".jpg",
@@ -23,21 +26,19 @@ var allowedMimeTypes = map[string]string{
 }
 
 type UploadHandler struct {
-	minio          *minio.Client
-	bucket         string
-	minioPublicURL string
+	minio  *minio.Client
+	bucket string
 }
 
-func NewUploadHandler(minioClient *minio.Client, bucket, minioPublicURL string) *UploadHandler {
+func NewUploadHandler(minioClient *minio.Client, bucket string) *UploadHandler {
 	return &UploadHandler{
-		minio:          minioClient,
-		bucket:         bucket,
-		minioPublicURL: minioPublicURL,
+		minio:  minioClient,
+		bucket: bucket,
 	}
 }
 
 // @Summary Upload receipt image
-// @Description Upload a receipt image file (protected). Returns the stored URL.
+// @Description Upload a receipt image file (protected). Returns object_name and a 1-hour pre-signed URL.
 // @Tags Upload
 // @Accept multipart/form-data
 // @Produce json
@@ -67,7 +68,6 @@ func (h *UploadHandler) UploadReceipt(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Read into buffer so we can sniff type then upload
 	buf := new(bytes.Buffer)
 	if _, err := buf.ReadFrom(file); err != nil {
 		WriteError(w, http.StatusInternalServerError, "Failed to read file")
@@ -75,7 +75,7 @@ func (h *UploadHandler) UploadReceipt(w http.ResponseWriter, r *http.Request) {
 	}
 	data := buf.Bytes()
 
-	// Detect content type from first 512 bytes
+	// Detect content type from first 512 bytes (ignores the Content-Type header).
 	contentType := http.DetectContentType(data[:min(512, len(data))])
 	ext, ok := allowedMimeTypes[contentType]
 	if !ok {
@@ -83,7 +83,6 @@ func (h *UploadHandler) UploadReceipt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build a safe, unique object name
 	baseName := sanitizeBaseName(header.Filename)
 	objectName := fmt.Sprintf("%d_%d_%s%s", userID, time.Now().UnixNano(), baseName, ext)
 
@@ -100,12 +99,58 @@ func (h *UploadHandler) UploadReceipt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url := fmt.Sprintf("%s/%s/%s", h.minioPublicURL, h.bucket, objectName)
-	WriteSuccess(w, http.StatusOK, map[string]string{"url": url})
+	signedURL, err := h.minio.PresignedGetObject(context.Background(), h.bucket, objectName, signedURLExpiry, nil)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "Failed to generate signed URL")
+		return
+	}
+
+	WriteSuccess(w, http.StatusOK, map[string]string{
+		"object_name": objectName,
+		"url":         signedURL.String(),
+	})
+}
+
+// @Summary Get signed receipt URL
+// @Description Generate a 1-hour pre-signed URL for an owned receipt (protected).
+// @Tags Upload
+// @Produce json
+// @Param objectName path string true "Object name returned from upload"
+// @Success 200 {object} object
+// @Failure 401 {object} MessageResponse
+// @Failure 403 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/uploads/receipts/{objectName} [get]
+func (h *UploadHandler) GetSignedReceiptURL(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserIDFromContext(r.Context())
+	if userID == 0 {
+		WriteError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	objectName := mux.Vars(r)["objectName"]
+	if objectName == "" {
+		WriteError(w, http.StatusBadRequest, "Missing object name")
+		return
+	}
+
+	ownerPrefix := strconv.Itoa(int(userID)) + "_"
+	if !strings.HasPrefix(objectName, ownerPrefix) {
+		WriteError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+
+	signedURL, err := h.minio.PresignedGetObject(context.Background(), h.bucket, objectName, signedURLExpiry, nil)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "Failed to generate signed URL")
+		return
+	}
+
+	WriteSuccess(w, http.StatusOK, map[string]string{"url": signedURL.String()})
 }
 
 // @Summary Delete receipt image
-// @Description Delete a previously uploaded receipt from storage (protected). Only the owner can delete their file.
+// @Description Delete a previously uploaded receipt (protected). Only the owner can delete.
 // @Tags Upload
 // @Produce json
 // @Param objectName path string true "Object name returned from upload"
@@ -127,7 +172,6 @@ func (h *UploadHandler) DeleteReceipt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify ownership: object name starts with "{userID}_"
 	ownerPrefix := strconv.Itoa(int(userID)) + "_"
 	if !strings.HasPrefix(objectName, ownerPrefix) {
 		WriteError(w, http.StatusForbidden, "Forbidden")
@@ -144,7 +188,6 @@ func (h *UploadHandler) DeleteReceipt(w http.ResponseWriter, r *http.Request) {
 
 // sanitizeBaseName strips the extension and keeps only safe characters (max 32).
 func sanitizeBaseName(name string) string {
-	// strip extension
 	if idx := strings.LastIndex(name, "."); idx >= 0 {
 		name = name[:idx]
 	}

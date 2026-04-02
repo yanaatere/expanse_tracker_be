@@ -18,7 +18,7 @@ type Claims struct {
 func GetJWTSecret() string {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		secret = "your-secret-key-change-this-in-production"
+		panic("JWT_SECRET environment variable is not set — refusing to start with an insecure default")
 	}
 	return secret
 }

@@ -36,8 +36,7 @@ func LoadConfig() (*Config, error) {
 	dbPassword := getEnv("DB_PASSWORD", "postgres")
 	dbName := getEnv("DB_NAME", "postgres")
 
-	// Log the configuration for debugging
-	log.Printf("Config loaded - Host: %s, Port: %s, User: %s, DB: %s", dbHost, dbPort, dbUser, dbName)
+	log.Printf("Config loaded - Host: %s, Port: %s, DB: %s", dbHost, dbPort, dbName)
 
 	// Determine SSL mode based on host
 	// Use SSL only for remote databases (not localhost or docker service name)
@@ -116,11 +115,7 @@ func LoadConfig() (*Config, error) {
 		log.Printf("Created MinIO bucket: %s", MinioBucket)
 	}
 
-	// Set bucket policy to allow public reads
-	policy := `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::` + MinioBucket + `/*"]}]}`
-	if err := minioClient.SetBucketPolicy(ctx, MinioBucket, policy); err != nil {
-		log.Printf("Warning: failed to set minio bucket policy: %v", err)
-	}
+	// Bucket is private — receipts are served via pre-signed URLs (see upload_handler.go).
 
 	return &Config{
 		DB:             db,

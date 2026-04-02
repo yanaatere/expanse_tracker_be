@@ -17,6 +17,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gorilla/mux"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -38,11 +39,11 @@ func main() {
 	r := mux.NewRouter()
 
 	// Initialize controllers
-	userController := controllers.NewUserController(cfg.DB)
+	userController := controllers.NewUserController(cfg.DB, cfg.Redis)
 transactionController := controllers.NewTransactionController(cfg.DB)
 	balanceController := controllers.NewBalanceController(cfg.DB)
 	walletController := controllers.NewWalletController(cfg.DB) // cfg.DB is *pgxpool.Pool
-	uploadController := controllers.NewUploadController(cfg.Minio, config.MinioBucket, cfg.MinioPublicURL)
+	uploadController := controllers.NewUploadController(cfg.Minio, config.MinioBucket)
 	botController := controllers.NewBotController(cfg.Redis)
 
 	// Register routes
@@ -75,7 +76,14 @@ transactionController.RegisterRoutes(r)
 	logger.Infof("Database: %s", os.Getenv("DB_NAME"))
 	logger.Infof("===========================================================")
 
-	if err := http.ListenAndServe(":"+port, handler); err != nil {
+	srv := &http.Server{
+		Addr:         ":" + port,
+		Handler:      handler,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+	if err := srv.ListenAndServe(); err != nil {
 		logger.Fatalf("Server error: %v", err)
 	}
 }

@@ -159,6 +159,39 @@ func (h *BalanceHandler) RecalculateBalance(w http.ResponseWriter, r *http.Reque
 	WriteSuccess(w, http.StatusOK, balance)
 }
 
+// GetHomeSummary returns the home screen summary: current month totals,
+// previous month expense, percent change vs prev month, and total balance.
+// GET /api/home/summary?user_id=1
+// @Summary Get home summary
+// @Description Get home screen summary (current month totals and percent change) (protected)
+// @Tags Balances
+// @Produce json
+// @Param user_id query int true "User ID"
+// @Success 200 {object} interface{}
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/home/summary [get]
+func (h *BalanceHandler) GetHomeSummary(w http.ResponseWriter, r *http.Request) {
+	userID, err := parseUserID(r)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	loc, _ := time.LoadLocation("Asia/Jakarta")
+	if loc == nil {
+		loc = time.UTC
+	}
+
+	summary, err := h.model.GetHomeSummary(r.Context(), int32(userID), loc)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	WriteSuccess(w, http.StatusOK, summary)
+}
+
 // parseUserID extracts and validates user_id from query params
 func parseUserID(r *http.Request) (int, error) {
 	userIDStr := r.URL.Query().Get("user_id")
