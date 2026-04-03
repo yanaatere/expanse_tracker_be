@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -26,6 +27,7 @@ import (
 	_ "github.com/yanaatere/expense_tracking/docs"
 	"github.com/yanaatere/expense_tracking/logger"
 	"github.com/yanaatere/expense_tracking/middleware"
+	"github.com/yanaatere/expense_tracking/models"
 )
 
 func main() {
@@ -40,19 +42,37 @@ func main() {
 
 	// Initialize controllers
 	userController := controllers.NewUserController(cfg.DB, cfg.Redis)
-transactionController := controllers.NewTransactionController(cfg.DB)
+	transactionController := controllers.NewTransactionController(cfg.DB)
 	balanceController := controllers.NewBalanceController(cfg.DB)
 	walletController := controllers.NewWalletController(cfg.DB) // cfg.DB is *pgxpool.Pool
 	uploadController := controllers.NewUploadController(cfg.Minio, config.MinioBucket)
 	botController := controllers.NewBotController(cfg.Redis)
+	recurringTransactionController := controllers.NewRecurringTransactionController(cfg.DB)
 
 	// Register routes
 	userController.RegisterRoutes(r)
-transactionController.RegisterRoutes(r)
+	transactionController.RegisterRoutes(r)
 	balanceController.RegisterRoutes(r)
 	walletController.RegisterRoutes(r)
 	uploadController.RegisterRoutes(r)
 	botController.RegisterRoutes(r)
+	recurringTransactionController.RegisterRoutes(r)
+
+	// Start daily background job for processing due recurring transactions.
+	go func() {
+		recurringModel := models.NewRecurringTransactionModel(cfg.DB)
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		// Run once at startup, then every 24 hours.
+		if err := recurringModel.ProcessDue(context.Background()); err != nil {
+			logger.Infof("recurring transactions processor error: %v", err)
+		}
+		for range ticker.C {
+			if err := recurringModel.ProcessDue(context.Background()); err != nil {
+				logger.Infof("recurring transactions processor error: %v", err)
+			}
+		}
+	}()
 
 	// Swagger route (enabled only outside production)
 	if os.Getenv("ENVIRONMENT") != "production" {

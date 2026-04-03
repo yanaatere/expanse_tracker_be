@@ -40,6 +40,11 @@ func (c *UserController) RegisterRoutes(router *mux.Router) {
 		rl(c.redis, "auth:register", 5, time.Hour)(http.HandlerFunc(c.authHandler.Register)),
 	).Methods("POST")
 
+	// Google Sign-In: 20 attempts / minute per IP.
+	router.Handle("/api/auth/google",
+		rl(c.redis, "auth:google", 20, time.Minute)(http.HandlerFunc(c.authHandler.GoogleLogin)),
+	).Methods("POST")
+
 	// Forgot-password: 3 requests / hour per IP (limits email enumeration).
 	router.Handle("/api/auth/forgot-password",
 		rl(c.redis, "auth:forgot", 3, time.Hour)(http.HandlerFunc(c.authHandler.ForgotPassword)),

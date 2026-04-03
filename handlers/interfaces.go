@@ -45,6 +45,15 @@ type WalletModelInterface interface {
 	Delete(ctx context.Context, id, userID int32) error
 }
 
+// RecurringTransactionModelInterface abstracts recurring transaction operations for testability.
+type RecurringTransactionModelInterface interface {
+	Create(ctx context.Context, userID int32, title, tType string, amount float64, categoryID, subCategoryID, walletID *int32, frequency string, startDate, endDate pgtype.Date) (*models.RecurringTransaction, error)
+	GetAll(ctx context.Context, userID int32) ([]models.RecurringTransaction, error)
+	Get(ctx context.Context, id, userID int32) (*models.RecurringTransaction, error)
+	Update(ctx context.Context, id, userID int32, title, tType string, amount float64, categoryID, subCategoryID, walletID *int32, frequency string, startDate, endDate, nextExecutionDate pgtype.Date) (*models.RecurringTransaction, error)
+	Delete(ctx context.Context, id, userID int32) error
+}
+
 // BalanceModelInterface abstracts balance database operations for testability.
 type BalanceModelInterface interface {
 	GetUserBalance(ctx context.Context, userID int32) (*models.UserBalanceResponse, error)

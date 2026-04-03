@@ -16,6 +16,24 @@ type Balance struct {
 	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
 }
 
+type RecurringTransaction struct {
+	ID                int32            `json:"id"`
+	UserID            int32            `json:"user_id"`
+	Title             string           `json:"title"`
+	Type              string           `json:"type"`
+	Amount            pgtype.Numeric   `json:"amount"`
+	CategoryID        pgtype.Int4      `json:"category_id"`
+	SubCategoryID     pgtype.Int4      `json:"sub_category_id"`
+	WalletID          pgtype.Int4      `json:"wallet_id"`
+	Frequency         string           `json:"frequency"`
+	StartDate         pgtype.Date      `json:"start_date"`
+	EndDate           pgtype.Date      `json:"end_date"`
+	IsActive          bool             `json:"is_active"`
+	NextExecutionDate pgtype.Date      `json:"next_execution_date"`
+	CreatedAt         pgtype.Timestamp `json:"created_at"`
+	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
+}
+
 type Transaction struct {
 	ID              int32            `json:"id"`
 	UserID          int32            `json:"user_id"`

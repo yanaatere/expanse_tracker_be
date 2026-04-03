@@ -2,13 +2,19 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/yanaatere/expense_tracking/auth"
 	"github.com/yanaatere/expense_tracking/internal/db"
 	"github.com/yanaatere/expense_tracking/models"
 )
+
+var googleHTTPClient = &http.Client{Timeout: 5 * time.Second}
 
 type AuthHandler struct {
 	userModel UserModelInterface
@@ -286,4 +292,114 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	WriteSuccess(w, http.StatusOK, MessageResponse{
 		Message: "Password has been reset successfully",
 	})
+}
+
+type GoogleLoginRequest struct {
+	IDToken string `json:"id_token"`
+}
+
+// GoogleLogin verifies a Google ID token and returns a Monex JWT.
+// It creates a new account automatically if the email is not yet registered.
+// @Summary Google Sign-In
+// @Description Verify a Google ID token and return a Monex JWT
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body GoogleLoginRequest true "Google ID token"
+// @Success 200 {object} AuthResponse
+// @Failure 400 {object} MessageResponse
+// @Failure 401 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/auth/google [post]
+func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
+	var req GoogleLoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	if req.IDToken == "" {
+		WriteError(w, http.StatusBadRequest, "id_token is required")
+		return
+	}
+
+	// Verify token via Google's tokeninfo endpoint (no extra dependency needed).
+	resp, err := googleHTTPClient.Get(
+		"https://oauth2.googleapis.com/tokeninfo?id_token=" + req.IDToken,
+	)
+	if err != nil {
+		WriteError(w, http.StatusUnauthorized, "Failed to verify Google token")
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		WriteError(w, http.StatusUnauthorized, "Invalid Google token")
+		return
+	}
+
+	var info map[string]string
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+		WriteError(w, http.StatusInternalServerError, "Failed to parse token info")
+		return
+	}
+
+	// Optional audience check — skip if GOOGLE_CLIENT_ID is not set.
+	if clientID := os.Getenv("GOOGLE_CLIENT_ID"); clientID != "" {
+		if info["aud"] != clientID {
+			WriteError(w, http.StatusUnauthorized, "Token audience mismatch")
+			return
+		}
+	}
+
+	email := info["email"]
+	if email == "" {
+		WriteError(w, http.StatusUnauthorized, "Google account has no email")
+		return
+	}
+	if info["email_verified"] != "true" {
+		WriteError(w, http.StatusUnauthorized, "Google email is not verified")
+		return
+	}
+
+	// Find existing user or create a new one.
+	user, err := h.userModel.GetByEmail(r.Context(), email)
+	if err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			WriteError(w, http.StatusInternalServerError, "Error looking up account")
+			return
+		}
+		// New user — derive username from email prefix.
+		username := googleDeriveUsername(email, info["name"])
+		user, err = h.userModel.CreateWithPassword(r.Context(), username, email, "")
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "Error creating account")
+			return
+		}
+	}
+
+	token, err := auth.GenerateToken(user.ID, user.Email, user.Username)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "Error generating token")
+		return
+	}
+
+	WriteSuccess(w, http.StatusOK, AuthResponse{
+		ID:       user.ID,
+		Username: user.Username,
+		Email:    user.Email,
+		Token:    token,
+	})
+}
+
+// googleDeriveUsername turns an email/name into a safe lowercase username.
+func googleDeriveUsername(email, name string) string {
+	if idx := strings.Index(email, "@"); idx > 0 {
+		base := strings.ToLower(email[:idx])
+		// Replace dots/hyphens/plus with underscore.
+		replacer := strings.NewReplacer(".", "_", "-", "_", "+", "_")
+		return replacer.Replace(base)
+	}
+	if name != "" {
+		return strings.ToLower(strings.ReplaceAll(name, " ", "_"))
+	}
+	return "user"
 }

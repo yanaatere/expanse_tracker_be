@@ -15,6 +15,7 @@ var _ handlers.UserModelInterface = (*MockUserModel)(nil)
 var _ handlers.TransactionModelInterface = (*MockTransactionModel)(nil)
 var _ handlers.WalletModelInterface = (*MockWalletModel)(nil)
 var _ handlers.BalanceModelInterface = (*MockBalanceModel)(nil)
+var _ handlers.RecurringTransactionModelInterface = (*MockRecurringTransactionModel)(nil)
 
 // MockUserModel is a configurable test double for UserModelInterface.
 type MockUserModel struct {
@@ -150,4 +151,29 @@ func (m *MockBalanceModel) RecalculateBalance(ctx context.Context, userID int32)
 }
 func (m *MockBalanceModel) GetHomeSummary(ctx context.Context, userID int32, loc *time.Location) (*models.HomeSummaryResponse, error) {
 	return m.GetHomeSummaryFn(ctx, userID, loc)
+}
+
+// MockRecurringTransactionModel is a configurable test double for RecurringTransactionModelInterface.
+type MockRecurringTransactionModel struct {
+	CreateFn func(ctx context.Context, userID int32, title, tType string, amount float64, categoryID, subCategoryID, walletID *int32, frequency string, startDate, endDate pgtype.Date) (*models.RecurringTransaction, error)
+	GetAllFn func(ctx context.Context, userID int32) ([]models.RecurringTransaction, error)
+	GetFn    func(ctx context.Context, id, userID int32) (*models.RecurringTransaction, error)
+	UpdateFn func(ctx context.Context, id, userID int32, title, tType string, amount float64, categoryID, subCategoryID, walletID *int32, frequency string, startDate, endDate, nextExecutionDate pgtype.Date) (*models.RecurringTransaction, error)
+	DeleteFn func(ctx context.Context, id, userID int32) error
+}
+
+func (m *MockRecurringTransactionModel) Create(ctx context.Context, userID int32, title, tType string, amount float64, categoryID, subCategoryID, walletID *int32, frequency string, startDate, endDate pgtype.Date) (*models.RecurringTransaction, error) {
+	return m.CreateFn(ctx, userID, title, tType, amount, categoryID, subCategoryID, walletID, frequency, startDate, endDate)
+}
+func (m *MockRecurringTransactionModel) GetAll(ctx context.Context, userID int32) ([]models.RecurringTransaction, error) {
+	return m.GetAllFn(ctx, userID)
+}
+func (m *MockRecurringTransactionModel) Get(ctx context.Context, id, userID int32) (*models.RecurringTransaction, error) {
+	return m.GetFn(ctx, id, userID)
+}
+func (m *MockRecurringTransactionModel) Update(ctx context.Context, id, userID int32, title, tType string, amount float64, categoryID, subCategoryID, walletID *int32, frequency string, startDate, endDate, nextExecutionDate pgtype.Date) (*models.RecurringTransaction, error) {
+	return m.UpdateFn(ctx, id, userID, title, tType, amount, categoryID, subCategoryID, walletID, frequency, startDate, endDate, nextExecutionDate)
+}
+func (m *MockRecurringTransactionModel) Delete(ctx context.Context, id, userID int32) error {
+	return m.DeleteFn(ctx, id, userID)
 }
