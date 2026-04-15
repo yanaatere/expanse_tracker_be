@@ -15,7 +15,7 @@ const clearPasswordResetToken = `-- name: ClearPasswordResetToken :one
 UPDATE users
 SET password_reset_token = NULL, password_reset_expires = NULL, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
-RETURNING id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at
+RETURNING id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at, is_premium
 `
 
 func (q *Queries) ClearPasswordResetToken(ctx context.Context, id int32) (User, error) {
@@ -30,6 +30,7 @@ func (q *Queries) ClearPasswordResetToken(ctx context.Context, id int32) (User, 
 		&i.PasswordResetExpires,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsPremium,
 	)
 	return i, err
 }
@@ -37,7 +38,7 @@ func (q *Queries) ClearPasswordResetToken(ctx context.Context, id int32) (User, 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (username, email, password)
 VALUES ($1, $2, $3)
-RETURNING id, username, email, password, created_at, updated_at
+RETURNING id, username, email, password, created_at, updated_at, is_premium
 `
 
 type CreateUserParams struct {
@@ -53,6 +54,7 @@ type CreateUserRow struct {
 	Password  string           `json:"password"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+	IsPremium bool             `json:"is_premium"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
@@ -65,6 +67,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 		&i.Password,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsPremium,
 	)
 	return i, err
 }
@@ -80,7 +83,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at
+SELECT id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at, is_premium
 FROM users
 WHERE id = $1 LIMIT 1
 `
@@ -97,12 +100,13 @@ func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
 		&i.PasswordResetExpires,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsPremium,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at
+SELECT id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at, is_premium
 FROM users
 WHERE email = $1 LIMIT 1
 `
@@ -119,12 +123,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.PasswordResetExpires,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsPremium,
 	)
 	return i, err
 }
 
 const getUserByResetToken = `-- name: GetUserByResetToken :one
-SELECT id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at
+SELECT id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at, is_premium
 FROM users
 WHERE password_reset_token = $1 AND password_reset_expires > CURRENT_TIMESTAMP LIMIT 1
 `
@@ -141,12 +146,13 @@ func (q *Queries) GetUserByResetToken(ctx context.Context, passwordResetToken pg
 		&i.PasswordResetExpires,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsPremium,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at
+SELECT id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at, is_premium
 FROM users
 WHERE username = $1 LIMIT 1
 `
@@ -163,12 +169,13 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.PasswordResetExpires,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsPremium,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at
+SELECT id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at, is_premium
 FROM users
 ORDER BY created_at DESC
 `
@@ -191,6 +198,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.PasswordResetExpires,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.IsPremium,
 		); err != nil {
 			return nil, err
 		}
@@ -206,7 +214,7 @@ const setPasswordResetToken = `-- name: SetPasswordResetToken :one
 UPDATE users
 SET password_reset_token = $2, password_reset_expires = $3, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
-RETURNING id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at
+RETURNING id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at, is_premium
 `
 
 type SetPasswordResetTokenParams struct {
@@ -227,6 +235,36 @@ func (q *Queries) SetPasswordResetToken(ctx context.Context, arg SetPasswordRese
 		&i.PasswordResetExpires,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsPremium,
+	)
+	return i, err
+}
+
+const setUserPremium = `-- name: SetUserPremium :one
+UPDATE users
+SET is_premium = $2, updated_at = NOW()
+WHERE id = $1
+RETURNING id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at, is_premium
+`
+
+type SetUserPremiumParams struct {
+	ID        int32 `json:"id"`
+	IsPremium bool  `json:"is_premium"`
+}
+
+func (q *Queries) SetUserPremium(ctx context.Context, arg SetUserPremiumParams) (User, error) {
+	row := q.db.QueryRow(ctx, setUserPremium, arg.ID, arg.IsPremium)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.Password,
+		&i.PasswordResetToken,
+		&i.PasswordResetExpires,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.IsPremium,
 	)
 	return i, err
 }
@@ -235,7 +273,7 @@ const updatePassword = `-- name: UpdatePassword :one
 UPDATE users
 SET password = $2, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
-RETURNING id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at
+RETURNING id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at, is_premium
 `
 
 type UpdatePasswordParams struct {
@@ -255,6 +293,7 @@ func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) 
 		&i.PasswordResetExpires,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsPremium,
 	)
 	return i, err
 }
@@ -263,7 +302,7 @@ const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET username = $2, email = $3, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
-RETURNING id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at
+RETURNING id, username, email, password, password_reset_token, password_reset_expires, created_at, updated_at, is_premium
 `
 
 type UpdateUserParams struct {
@@ -284,6 +323,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.PasswordResetExpires,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsPremium,
 	)
 	return i, err
 }

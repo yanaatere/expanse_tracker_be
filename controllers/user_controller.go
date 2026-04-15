@@ -55,9 +55,13 @@ func (c *UserController) RegisterRoutes(router *mux.Router) {
 		rl(c.redis, "auth:reset", 5, 15*time.Minute)(http.HandlerFunc(c.authHandler.ResetPassword)),
 	).Methods("POST")
 
+	// Auth routes (protected)
+	router.Handle("/api/auth/me", auth.JWTMiddleware(http.HandlerFunc(c.authHandler.GetMe))).Methods("GET")
+
 	// User routes (protected)
 	router.Handle("/api/users", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetUsers))).Methods("GET")
 	router.Handle("/api/users/{id:[0-9]+}", auth.JWTMiddleware(http.HandlerFunc(c.handler.GetUser))).Methods("GET")
 	router.Handle("/api/users/{id:[0-9]+}", auth.JWTMiddleware(http.HandlerFunc(c.handler.UpdateUser))).Methods("PUT")
 	router.Handle("/api/users/{id:[0-9]+}", auth.JWTMiddleware(http.HandlerFunc(c.handler.DeleteUser))).Methods("DELETE")
+	router.Handle("/api/users/{id:[0-9]+}/premium", auth.JWTMiddleware(http.HandlerFunc(c.authHandler.SetPremium))).Methods("PUT")
 }

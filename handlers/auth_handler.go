@@ -51,10 +51,11 @@ type ResetPasswordRequest struct {
 }
 
 type AuthResponse struct {
-	ID       int32  `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Token    string `json:"token"`
+	ID        int32  `json:"id"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	Token     string `json:"token"`
+	IsPremium bool   `json:"is_premium"`
 }
 
 type MessageResponse struct {
@@ -121,10 +122,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteSuccess(w, http.StatusCreated, AuthResponse{
-		ID:       user.ID,
-		Username: user.Username,
-		Email:    user.Email,
-		Token:    token,
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Token:     token,
+		IsPremium: user.IsPremium,
 	})
 }
 
@@ -172,10 +174,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteSuccess(w, http.StatusOK, AuthResponse{
-		ID:       user.ID,
-		Username: user.Username,
-		Email:    user.Email,
-		Token:    token,
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Token:     token,
+		IsPremium: user.IsPremium,
 	})
 }
 
@@ -383,11 +386,65 @@ func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteSuccess(w, http.StatusOK, AuthResponse{
-		ID:       user.ID,
-		Username: user.Username,
-		Email:    user.Email,
-		Token:    token,
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Token:     token,
+		IsPremium: user.IsPremium,
 	})
+}
+
+// GetMe godoc
+// @Summary Get current user profile
+// @Description Returns the authenticated user's profile including premium status
+// @Tags Auth
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Failure 404 {object} MessageResponse
+// @Router /api/auth/me [get]
+func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserIDFromContext(r.Context())
+	user, err := h.userModel.Get(r.Context(), userID)
+	if err != nil || user == nil {
+		WriteError(w, http.StatusNotFound, "User not found")
+		return
+	}
+	WriteSuccess(w, http.StatusOK, map[string]any{
+		"id":         user.ID,
+		"username":   user.Username,
+		"email":      user.Email,
+		"is_premium": user.IsPremium,
+	})
+}
+
+// SetPremium godoc
+// @Summary Set premium status for current user
+// @Description Update the authenticated user's premium status
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body map[string]bool true "Premium status"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} MessageResponse
+// @Failure 500 {object} MessageResponse
+// @Router /api/users/{id}/premium [put]
+func (h *AuthHandler) SetPremium(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserIDFromContext(r.Context())
+	var body struct {
+		IsPremium bool `json:"is_premium"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		WriteError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	user, err := h.userModel.SetPremium(r.Context(), userID, body.IsPremium)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "Failed to update premium status")
+		return
+	}
+	WriteSuccess(w, http.StatusOK, map[string]any{"is_premium": user.IsPremium})
 }
 
 // googleDeriveUsername turns an email/name into a safe lowercase username.

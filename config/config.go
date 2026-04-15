@@ -17,10 +17,12 @@ import (
 const MinioBucket = "receipts"
 
 type Config struct {
-	DB             *pgxpool.Pool
-	Redis          *redis.Client
-	Minio          *minio.Client
-	MinioPublicURL string
+	DB              *pgxpool.Pool
+	Redis           *redis.Client
+	Minio           *minio.Client
+	MinioPublicURL  string
+	AnthropicAPIKey   string
+	AnthropicModel    string // e.g. "claude-sonnet-4-6", "claude-haiku-4-5", "claude-opus-4-6"
 }
 
 func LoadConfig() (*Config, error) {
@@ -117,11 +119,18 @@ func LoadConfig() (*Config, error) {
 
 	// Bucket is private — receipts are served via pre-signed URLs (see upload_handler.go).
 
+	anthropicKey := os.Getenv("ANTHROPIC_API_KEY")
+	if anthropicKey == "" {
+		panic("ANTHROPIC_API_KEY environment variable is required")
+	}
+
 	return &Config{
-		DB:             db,
-		Redis:          redisClient,
-		Minio:          minioClient,
-		MinioPublicURL: minioPublicURL,
+		DB:              db,
+		Redis:           redisClient,
+		Minio:           minioClient,
+		MinioPublicURL:  minioPublicURL,
+		AnthropicAPIKey: anthropicKey,
+		AnthropicModel:  getEnv("ANTHROPIC_MODEL", ""),
 	}, nil
 }
 

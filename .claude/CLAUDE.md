@@ -77,6 +77,10 @@ HTTP → Middleware → Controllers (route registration) → Handlers (HTTP logi
 
 **Bot integration:** `handlers/bot_handler.go` + `controllers/bot_controller.go` implement Telegram bot linking via Redis. A 6-digit `link_code` (stored as `link_code:<code>` in Redis) maps to a Telegram `chatID`. Consuming the code writes the user's JWT and ID into the `session:<chatID>` Redis key. The `BotHandler` takes a `*redis.Client` directly (not an interface) — it is not covered by the mock-based test pattern.
 
+**Google Sign-In:** `POST /api/auth/google` accepts a Google `id_token`, verifies it via Google's `tokeninfo` endpoint (no extra SDK), and returns a Monex JWT. Auto-creates a new account if the email is not registered (password stored as empty string). Optional audience check if `GOOGLE_CLIENT_ID` env var is set. Route is public (no JWT middleware).
+
+**Recurring transactions:** `recurring_transactions` table stores scheduled transactions with a `frequency` (daily/weekly/monthly) and optional `end_date`. A background goroutine in `main.go` calls `RecurringTransactionModel.ProcessDue()` once at startup then every 24 hours — it creates real transactions for all due entries and advances their `next_run_date`. `RecurringTransactionModel` requires a `*pgxpool.Pool` (not `db.DBTX`) because `ProcessDue` spawns a `pgx.Tx` internally.
+
 **Dual balance tracking:** Two parallel systems maintain balance:
 - `balances` table — one row per user, cumulative `total_balance` adjusted atomically on every transaction create/update/delete via `AdjustBalance` (INSERT ... ON CONFLICT DO UPDATE SET balance + delta).
 - `wallets.balance` — per-wallet balance adjusted the same way via `AdjustWalletBalance`.
@@ -88,7 +92,7 @@ HTTP → Middleware → Controllers (route registration) → Handlers (HTTP logi
 1. Add SQL query to `query/*.sql` → run `sqlc generate` to produce typed Go in `internal/db/`
 2. Implement business logic in `models/` using the generated SQLC function
 3. Add the method signature to the relevant interface in `handlers/interfaces.go`
-4. Add the HTTP handler to `handlers/*_handler.go` using `parseUserID` + `WriteSuccess`/`WriteError`
+4. Add the HTTP handler to `handlers/*_handler.go` using `auth.GetUserIDFromContext(r.Context())` + `WriteSuccess`/`WriteError`
 5. Register the route in `controllers/*_controller.go` (with `auth.JWTMiddleware` if protected) and add the mock method to `tests/mocks.go`
 
 ## Development Guidelines
@@ -112,5 +116,6 @@ Environment variables loaded from `.env` (or system env):
 - `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY` — MinIO credentials (default `minioadmin`/`minioadmin`)
 - `MINIO_USE_SSL` — set to `true` to enable TLS for MinIO (default `false`)
 - `MINIO_PUBLIC_URL` — base URL for serving uploaded files (default `http://localhost:9000`)
+- `GOOGLE_CLIENT_ID` — optional; if set, the Google Sign-In endpoint validates the token's `aud` claim against this value
 
 SSL is enabled automatically when `DB_HOST` is not `localhost` or `db`. IPv4 is forced for remote DB hosts.

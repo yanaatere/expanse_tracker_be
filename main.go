@@ -20,11 +20,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/gorilla/mux"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"github.com/yanaatere/expense_tracking/config"
 	"github.com/yanaatere/expense_tracking/controllers"
 	_ "github.com/yanaatere/expense_tracking/docs"
+	"github.com/yanaatere/expense_tracking/internal/ai"
 	"github.com/yanaatere/expense_tracking/logger"
 	"github.com/yanaatere/expense_tracking/middleware"
 	"github.com/yanaatere/expense_tracking/models"
@@ -48,6 +50,9 @@ func main() {
 	uploadController := controllers.NewUploadController(cfg.Minio, config.MinioBucket)
 	botController := controllers.NewBotController(cfg.Redis)
 	recurringTransactionController := controllers.NewRecurringTransactionController(cfg.DB)
+	aiProvider := ai.NewService(cfg.AnthropicAPIKey, anthropic.Model(cfg.AnthropicModel))
+	aiController := controllers.NewAIController(aiProvider, cfg.DB)
+	budgetController := controllers.NewBudgetController(cfg.DB)
 
 	// Register routes
 	userController.RegisterRoutes(r)
@@ -57,6 +62,8 @@ func main() {
 	uploadController.RegisterRoutes(r)
 	botController.RegisterRoutes(r)
 	recurringTransactionController.RegisterRoutes(r)
+	aiController.RegisterRoutes(r)
+	budgetController.RegisterRoutes(r)
 
 	// Start daily background job for processing due recurring transactions.
 	go func() {

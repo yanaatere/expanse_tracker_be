@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yanaatere/expense_tracking/auth"
+	"github.com/yanaatere/expense_tracking/logger"
 	"github.com/yanaatere/expense_tracking/models"
 )
 
@@ -122,6 +123,7 @@ func (h *RecurringTransactionHandler) CreateRecurringTransaction(w http.Response
 
 	rt, err := h.model.Create(r.Context(), userID, input.Title, input.Type, input.Amount, catID, subCatID, wID, input.Frequency, startDate, endDate)
 	if err != nil {
+		logger.Errorf("CreateRecurringTransaction: userID=%d err=%v", userID, err)
 		WriteError(w, http.StatusInternalServerError, "Failed to create recurring transaction")
 		return
 	}

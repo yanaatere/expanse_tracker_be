@@ -16,6 +16,19 @@ type Balance struct {
 	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
 }
 
+type Budget struct {
+	ID                  int32            `json:"id"`
+	UserID              int32            `json:"user_id"`
+	CategoryID          pgtype.Int4      `json:"category_id"`
+	CategoryName        string           `json:"category_name"`
+	BudgetLimit         pgtype.Numeric   `json:"budget_limit"`
+	Period              string           `json:"period"`
+	Title               pgtype.Text      `json:"title"`
+	NotificationEnabled bool             `json:"notification_enabled"`
+	CreatedAt           pgtype.Timestamp `json:"created_at"`
+	UpdatedAt           pgtype.Timestamp `json:"updated_at"`
+}
+
 type RecurringTransaction struct {
 	ID                int32            `json:"id"`
 	UserID            int32            `json:"user_id"`
@@ -58,6 +71,7 @@ type User struct {
 	PasswordResetExpires pgtype.Timestamp `json:"password_reset_expires"`
 	CreatedAt            pgtype.Timestamp `json:"created_at"`
 	UpdatedAt            pgtype.Timestamp `json:"updated_at"`
+	IsPremium            bool             `json:"is_premium"`
 }
 
 type Wallet struct {

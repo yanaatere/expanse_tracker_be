@@ -31,6 +31,7 @@ type MockUserModel struct {
 	SetPasswordResetTokenFn   func(ctx context.Context, id int32, token string, expiresAt time.Time) (*models.User, error)
 	GetByResetTokenFn         func(ctx context.Context, token string) (*models.User, error)
 	ClearPasswordResetTokenFn func(ctx context.Context, id int32) (*models.User, error)
+	SetPremiumFn              func(ctx context.Context, userID int32, isPremium bool) (*models.User, error)
 }
 
 func (m *MockUserModel) GetAll(ctx context.Context) ([]models.User, error) {
@@ -68,6 +69,9 @@ func (m *MockUserModel) GetByResetToken(ctx context.Context, token string) (*mod
 }
 func (m *MockUserModel) ClearPasswordResetToken(ctx context.Context, id int32) (*models.User, error) {
 	return m.ClearPasswordResetTokenFn(ctx, id)
+}
+func (m *MockUserModel) SetPremium(ctx context.Context, userID int32, isPremium bool) (*models.User, error) {
+	return m.SetPremiumFn(ctx, userID, isPremium)
 }
 
 // MockTransactionModel is a configurable test double for TransactionModelInterface.

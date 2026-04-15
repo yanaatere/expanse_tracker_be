@@ -44,6 +44,7 @@ func (m *UserModel) Create(ctx context.Context, username, email string) (*User, 
 		Username:  u.Username,
 		Email:     u.Email,
 		Password:  u.Password,
+		IsPremium: u.IsPremium,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}
@@ -64,10 +65,22 @@ func (m *UserModel) CreateWithPassword(ctx context.Context, username, email, pas
 		Username:  u.Username,
 		Email:     u.Email,
 		Password:  u.Password,
+		IsPremium: u.IsPremium,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}
 	return &user, nil
+}
+
+func (m *UserModel) SetPremium(ctx context.Context, userID int32, isPremium bool) (*User, error) {
+	u, err := m.q.SetUserPremium(ctx, db.SetUserPremiumParams{
+		ID:        userID,
+		IsPremium: isPremium,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
 }
 
 func (m *UserModel) Update(ctx context.Context, id int32, username, email string) (*User, error) {
