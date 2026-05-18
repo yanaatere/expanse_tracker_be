@@ -53,6 +53,7 @@ func main() {
 	aiProvider := ai.NewService(cfg.AnthropicAPIKey, anthropic.Model(cfg.AnthropicModel))
 	aiController := controllers.NewAIController(aiProvider, cfg.DB)
 	budgetController := controllers.NewBudgetController(cfg.DB)
+	reportController := controllers.NewReportController(cfg.DB)
 
 	// Register routes
 	userController.RegisterRoutes(r)
@@ -64,6 +65,7 @@ func main() {
 	recurringTransactionController.RegisterRoutes(r)
 	aiController.RegisterRoutes(r)
 	budgetController.RegisterRoutes(r)
+	reportController.RegisterRoutes(r)
 
 	// Start daily background job for processing due recurring transactions.
 	go func() {

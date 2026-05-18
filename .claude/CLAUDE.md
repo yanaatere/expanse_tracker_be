@@ -38,8 +38,8 @@ HTTP → Middleware → Controllers (route registration) → Handlers (HTTP logi
 
 **Key layer responsibilities:**
 - `controllers/`: Route registration using Gorilla Mux. Each controller receives a `*pgxpool.Pool` and wires handlers to routes.
-- `handlers/`: HTTP request/response logic. All handlers use `WriteSuccess()` / `WriteError()` from `handlers/response.go`. Interfaces for all handler dependencies are defined in `handlers/interfaces.go`.
-- `models/`: Business logic that implements the interfaces in `handlers/interfaces.go`. Calls SQLC-generated code.
+- `handlers/`: HTTP request/response logic. All handlers use `WriteSuccess()` / `WriteError()` from `handlers/response.go`. Interfaces for handler dependencies are split into per-domain files: `handlers/balance_interface.go`, `handlers/transaction_interface.go`, `handlers/wallet_interface.go`, `handlers/recurring_transaction_interface.go`, `handlers/user_interface.go`.
+- `models/`: Business logic that implements the interfaces in `handlers/*_interface.go`. Calls SQLC-generated code.
 - `internal/db/`: Auto-generated SQLC code — **do not edit manually**. Regenerate with `sqlc generate` after changing `query/*.sql`.
 - `auth/`: JWT generation/validation (`jwt.go`), bcrypt password hashing (`password.go`), JWT middleware (`middleware.go`), password reset token generation (`email.go` — email sending is a stub, integrate a real provider for production).
 - `middleware/`: CORS and request logging (applied globally in `main.go`; logging wraps first, then CORS).
@@ -51,7 +51,7 @@ HTTP → Middleware → Controllers (route registration) → Handlers (HTTP logi
 
 **SQLC workflow:** SQL queries live in `query/*.sql`. Running `sqlc generate` produces type-safe Go code in `internal/db/`. The `db.DBTX` interface allows both `pgxpool.Pool` and `pgx.Tx` to be used interchangeably.
 
-**Testing:** Tests in `tests/` use mock implementations of the interfaces from `handlers/interfaces.go`. Mocks are defined in `tests/mocks.go`. Note: `tests/balance_handler_test.go` has pre-existing broken tests for `GetBalanceByCategory` / `models.CategoryBalance` which are not yet implemented — do not be alarmed by the compile failure in that file.
+**Testing:** Tests in `tests/` use mock implementations of the interfaces from `handlers/*_interface.go`. Mocks are defined in `tests/mocks.go`. Note: `tests/balance_handler_test.go` has pre-existing broken tests for `GetBalanceByCategory` / `models.CategoryBalance` which are not yet implemented — do not be alarmed by the compile failure in that file.
 
 **Auth:** JWT middleware (`auth.JWTMiddleware()`) is applied per-route in controllers. Public routes: `/api/auth/register`, `/api/auth/login`, password reset endpoints. The JWT context key is an unexported typed `contextKey` string — always use `auth.GetUserIDFromContext(ctx)` to retrieve it, never access the context key directly. `JWT_SECRET` env var **must** be set — the app panics on startup if it is missing. bcrypt cost is 12.
 
@@ -75,6 +75,10 @@ HTTP → Middleware → Controllers (route registration) → Handlers (HTTP logi
 
 **File uploads:** Receipt images are uploaded to MinIO object storage (S3-compatible) and served via `MINIO_PUBLIC_URL`. The `upload_controller.go` handles multipart form uploads to the `receipts` bucket.
 
+**Premium access:** `middleware.PremiumRequired(pool)` checks `users.is_premium` in the DB and returns 403 if false. It must be chained **inside** `auth.JWTMiddleware` so the user ID is already in context: `auth.JWTMiddleware(middleware.PremiumRequired(pool)(h))`. Currently used only by `GET /api/reports/transactions`.
+
+**Reports (premium-only):** `ReportHandler` + `ReportController` expose `GET /api/reports/transactions?mode=monthly|annually&year=YYYY[&month=M]`. Unlike other handlers, `ReportHandler` bypasses the interface pattern and takes `*pgxpool.Pool` directly — it is not covered by the mock-based test pattern (same exception as `BotHandler`).
+
 **Bot integration:** `handlers/bot_handler.go` + `controllers/bot_controller.go` implement Telegram bot linking via Redis. A 6-digit `link_code` (stored as `link_code:<code>` in Redis) maps to a Telegram `chatID`. Consuming the code writes the user's JWT and ID into the `session:<chatID>` Redis key. The `BotHandler` takes a `*redis.Client` directly (not an interface) — it is not covered by the mock-based test pattern.
 
 **Google Sign-In:** `POST /api/auth/google` accepts a Google `id_token`, verifies it via Google's `tokeninfo` endpoint (no extra SDK), and returns a Monex JWT. Auto-creates a new account if the email is not registered (password stored as empty string). Optional audience check if `GOOGLE_CLIENT_ID` env var is set. Route is public (no JWT middleware).
@@ -91,7 +95,7 @@ HTTP → Middleware → Controllers (route registration) → Handlers (HTTP logi
 **Adding a new endpoint (5-step pattern):**
 1. Add SQL query to `query/*.sql` → run `sqlc generate` to produce typed Go in `internal/db/`
 2. Implement business logic in `models/` using the generated SQLC function
-3. Add the method signature to the relevant interface in `handlers/interfaces.go`
+3. Add the method signature to the relevant per-domain interface file in `handlers/*_interface.go`
 4. Add the HTTP handler to `handlers/*_handler.go` using `auth.GetUserIDFromContext(r.Context())` + `WriteSuccess`/`WriteError`
 5. Register the route in `controllers/*_controller.go` (with `auth.JWTMiddleware` if protected) and add the mock method to `tests/mocks.go`
 
